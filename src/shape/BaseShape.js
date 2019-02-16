@@ -2,6 +2,7 @@ import Figure from "../Figure.js";
 
 export default class BaseShape extends Figure {
     constructor(p) {
+        p = p || {};
         super(p);
         this.color = p['color'] || 'black';
         this.borderColor = p['borderColor'];

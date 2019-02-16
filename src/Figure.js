@@ -288,11 +288,11 @@ export default class Figure {
         return this[_defaultAnchor];
     }
 
-    addChild(child){
+    addChild(child) {
         this[_children].add(child);
     }
 
-    removeChild(child){
+    removeChild(child) {
         this[_children].remove(child);
     }
 }

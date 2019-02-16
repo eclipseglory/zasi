@@ -1,5 +1,5 @@
 import Figure from "./Figure.js";
-import '../libs/tielifa.min.js';
+import '../libs/tielifa.js';
 
 export default class Graph extends Figure {
     constructor(canvas, p) {
