@@ -1,9 +1,10 @@
 import Dimension3 from "./common/Dimension3.js";
 import List from "./common/List.js";
+import Tools from "./utils/Tools.js";
+import "../libs/tielifa.min.js";
 
 let _id = Symbol('figure对象的唯一标示');
 let _bounds = Symbol('figure左上角坐标点以及大小的一个数组,0位是x,1位是y,2位是z,3位是width,4位是height');
-let _rp = Symbol('figure的旋转伸缩锚点所在figurebounds的百分比,0-1');
 let _transformCalculator = Symbol('figure旋转拉伸所在锚点的计算方法');
 let _children = Symbol('子figure列表');
 let _parent = Symbol('父figure');
@@ -13,15 +14,19 @@ let _opacity = Symbol('figure的透明度,0 - 1');
 let _visible = Symbol('figure是否显示 , boolean值');
 let _methods = Symbol('figure事件map');
 let _defaultAnchor = Symbol('默认转换锚点');
+let _relatedRegion = Symbol('Figure所在的区域');
+let _selfBounds = Symbol('figure相对于自身的bounds');
+let _contentChanged = Symbol('Figure内部绘制是否发生了改变');
+let _transformChanged = Symbol('Figure坐标、旋转、伸缩是否发生了改变');
+let _transformMatrix = Symbol('figure自身的变换4x4矩阵');
 let GLOBAL_ID = 0;
-
-const PIDIV180 = Math.PI / 180;
 
 export default class Figure {
 
     constructor(properties) {
         properties = properties || {};
         this[_id] = GLOBAL_ID++;
+        this.autoIgnoreOutsizeChild = properties['autoIgnore'] || false;
         this[_defaultAnchor] = new Dimension3();
         this[_bounds] = new Float32Array(5);
         this[_bounds][0] = properties['x'] || 0;
@@ -46,6 +51,53 @@ export default class Figure {
         this[_visible] = properties['visible'] || true;
         this[_transformCalculator] = null;
         this[_children] = new List();
+        this[_relatedRegion] = [];
+        this[_selfBounds] = {left: 0, top: 0, right: this.width, bottom: this.height};
+        this.relativeBounds = {left: 0, top: 0, right: this.width, bottom: this.height, width: 0, height: 0};
+        this[_transformMatrix] = tielifa.Mat4.identity();
+        this.relativeMatrix = tielifa.Mat4.identity();
+        this[_transformChanged] = true;
+        this[_contentChanged] = true;
+        this._tempP1 = new Float32Array(4);
+        this._tempP2 = new Float32Array(4);
+        this._tempP3 = new Float32Array(4);
+        this._tempP4 = new Float32Array(4);
+    }
+
+    get childrenSize() {
+        return this[_children].length;
+    }
+
+    get parent() {
+        return this[_parent];
+    }
+
+    set parent(parent) {
+        this[_parent] = parent;
+    }
+
+    get relatedRegions() {
+        return this[_relatedRegion];
+    }
+
+    set relatedRegions(array) {
+        this[_relatedRegion] = array;
+    }
+
+    get isContentChanged() {
+        return this[_contentChanged];
+    }
+
+    fireContentChange(changed) {
+        this[_contentChanged] = changed;
+    }
+
+    get isTransformChanged() {
+        return this[_transformChanged];
+    }
+
+    fireTransformChange(changed) {
+        this[_transformChanged] = changed;
     }
 
     get transformAnchorCalculator() {
@@ -61,8 +113,19 @@ export default class Figure {
     }
 
     set opacity(opacity) {
+        if (Tools.equals(opacity, this[_opacity])) {
+            return;
+        }
         this[_opacity] = opacity;
+        this.fireContentChange(true);
     }
+
+    update(requestId) {
+        if (this.parent != null) {
+            this.parent.update(this.Id);
+        }
+    }
+
 
     /**
      * Figure's ID(read-only)
@@ -118,7 +181,11 @@ export default class Figure {
     }
 
     set left(value) {
+        if (Tools.equals(value, this[_bounds][0])) {
+            return;
+        }
         this[_bounds][0] = value;
+        this.fireTransformChange(true);
     }
 
     get top() {
@@ -126,7 +193,11 @@ export default class Figure {
     }
 
     set top(value) {
+        if (Tools.equals(value, this[_bounds][1])) {
+            return;
+        }
         this[_bounds][1] = value;
+        this.fireTransformChange(true);
     }
 
     get depth() {
@@ -134,7 +205,11 @@ export default class Figure {
     }
 
     set depth(value) {
+        if (Tools.equals(value, this[_bounds][2])) {
+            return;
+        }
         this[_bounds][2] = value;
+        this.fireTransformChange(true);
     }
 
     get width() {
@@ -142,7 +217,11 @@ export default class Figure {
     }
 
     set width(value) {
+        if (Tools.equals(value, this[_bounds][3])) {
+            return;
+        }
         this[_bounds][3] = value;
+        this.fireContentChange(true);
     }
 
     get height() {
@@ -150,11 +229,11 @@ export default class Figure {
     }
 
     set height(value) {
+        if (Tools.equals(value, this[_bounds][4])) {
+            return;
+        }
         this[_bounds][4] = value;
-    }
-
-    get allRotate() {
-        return this[_rotate];
+        this.fireContentChange(true);
     }
 
     get rotate() {
@@ -162,51 +241,75 @@ export default class Figure {
     }
 
     set rotateX(value) {
+        value = value % 360;
+        if (Tools.equals(value, this[_rotate].x)) {
+            return;
+        }
         this[_rotate].x = value;
+        this.fireTransformChange(true);
     }
 
     get rotateX() {
-        return this.allRotate.x
+        return this[_rotate].x
     }
 
     set rotateY(value) {
+        value = value % 360;
+        if (Tools.equals(value, this[_rotate].y)) {
+            return;
+        }
         this[_rotate].y = value;
+        this.fireTransformChange(true);
     }
 
     get rotateY() {
-        return this.allRotate.y;
+        return this[_rotate].y;
     }
 
     set rotate(value) {
+        value = value % 360;
+        if (Tools.equals(value, this[_rotate].z)) {
+            return;
+        }
         this[_rotate].z = value;
+        this.fireTransformChange(true);
     }
 
-    get allScale() {
-        return this[_scale];
-    }
 
     get scaleX() {
-        return this.allScale.x;
+        return this[_scale].x;
     }
 
     get scaleY() {
-        return this.allScale.y;
+        return this[_scale].y;
     }
 
     get scaleZ() {
-        return this.allScale.z;
+        return this[_scale].z;
     }
 
     set scaleX(value) {
-        this.allScale.x = value;
+        if (Tools.equals(value, this[_scale].x)) {
+            return;
+        }
+        this[_scale].x = value;
+        this.fireTransformChange(true);
     }
 
     set scaleY(value) {
-        this.allScale.y = value;
+        if (Tools.equals(value, this[_scale].y)) {
+            return;
+        }
+        this[_scale].y = value;
+        this.fireTransformChange(true);
     }
 
     set scaleZ(value) {
-        this.allScale.z = value;
+        if (Tools.equals(value, this[_scale].z)) {
+            return;
+        }
+        this[_scale].z = value;
+        this.fireTransformChange(true);
     }
 
     get children() {
@@ -222,10 +325,11 @@ export default class Figure {
     }
 
     /****************************** 以上是属性 ************************/
-
+    /**
+     * 该方法由子类复写
+     * @param ctx
+     */
     drawSelf(ctx) {
-
-
     }
 
     draw(ctx) {
@@ -238,28 +342,30 @@ export default class Figure {
     }
 
     applyTransform(ctx) {
-
-        let transformAnchor = this.getTransformAnchor();
-        let anchorX = transformAnchor.x;
-        let anchorY = transformAnchor.y;
-        let anchorZ = transformAnchor.z;
-        ctx.translate(this.left, this.top, this.depth);
-
-        if (this.rotate != 0 || this.rotateX != 0 || this.rotateY != 0) {
-            ctx.translate(anchorX, anchorY, anchorZ);
-            ctx.rotate(this.rotate * PIDIV180);
-            ctx.rotateX(this.rotateX * PIDIV180);
-            ctx.rotateY(this.rotateY * PIDIV180);
-            ctx.translate(-anchorX, -anchorY, -anchorZ);
-        }
-
-        if (this.scaleX != 1 || this.scaleY != 1 || this.scaleZ != 1) {
-            ctx.scale(this.scaleX, this.scaleY, this.scaleZ);
-            let newx = anchorX / this.scaleX - anchorX;
-            let newy = anchorY / this.scaleY - anchorY;
-            let newz = anchorZ / this.scaleZ - anchorZ;
-            ctx.translate(newx, newy, newz);
-        }
+        let matrix = this.getTransformMatrix();
+        ctx.applyTransformMatrix(matrix);
+        // 留着这段代码，免得出了bug不好恢复
+        // let transformAnchor = this.getTransformAnchor();
+        // let anchorX = transformAnchor.x;
+        // let anchorY = transformAnchor.y;
+        // let anchorZ = transformAnchor.z;
+        // ctx.translate(this.left, this.top, this.depth);
+        //
+        // if (this.rotate != 0 || this.rotateX != 0 || this.rotateY != 0) {
+        //     ctx.translate(anchorX, anchorY, anchorZ);
+        //     ctx.rotate(this.rotate * Tools.PIDIV180);
+        //     ctx.rotateX(this.rotateX * Tools.PIDIV180);
+        //     ctx.rotateY(this.rotateY * Tools.PIDIV180);
+        //     ctx.translate(-anchorX, -anchorY, -anchorZ);
+        // }
+        //
+        // if (this.scaleX != 1 || this.scaleY != 1 || this.scaleZ != 1) {
+        //     ctx.scale(this.scaleX, this.scaleY, this.scaleZ);
+        //     let newx = anchorX / this.scaleX - anchorX;
+        //     let newy = anchorY / this.scaleY - anchorY;
+        //     let newz = anchorZ / this.scaleZ - anchorZ;
+        //     ctx.translate(newx, newy, newz);
+        // }
     }
 
     applyDrawingStyle(ctx) {
@@ -270,6 +376,10 @@ export default class Figure {
         for (let i = 0; i < this.children.length; i++) {
             let child = this.children.get(i);
             if (!child.visible) continue;
+            if (this.autoIgnoreOutsizeChild)
+                if (this.isOutside(child)) {
+                    continue;
+                }
             child.draw(ctx);
         }
     }
@@ -288,11 +398,242 @@ export default class Figure {
         return this[_defaultAnchor];
     }
 
+    addEventListener(name, callBack) {
+        if (this[_methods][name] == null || this[_methods][name] == undefined) {
+            this[_methods][name] = [];
+        }
+        this[_methods][name].push(callBack);
+    }
+
+    removeEventListener(name, callBack) {
+        if (this[_methods][name] == null) return;
+        this[_methods][name].pop(callBack);
+    }
+
+    cleanEventListener(name) {
+        if (this[_methods][name] == null || this[_methods][name] == undefined) return;
+        this[_methods][name].length = 0;
+    }
+
+    fireEvent(name, evt) {
+        if (this[_methods][name] != null) {
+            for (let index = 0; index < this[_methods][name].length; index++) {
+                this[_methods][name][index](evt);
+            }
+        }
+    }
+
+    indexOf(child) {
+        return this[_children].indexOf(child);
+    }
+
+    getGraph() {
+        let graph = this.parent;
+        if (!graph) {
+            return this;
+        }
+        return graph.getGraph();
+    }
+
+    getChild(index) {
+        return this[_children].get(index);
+    }
+
+    containsChild(child) {
+        return this[_children].contains(child);
+    }
+
+
+    insertChild(child, index) {
+        if (child == null) return;
+        if (this.containsChild(child)) return;
+        let parent = child.parent;
+        if (parent) {
+            parent.removeChild(child);
+        }
+        this[_children].insert(child, index);
+        child.parent = this;
+        return child;
+    }
+
     addChild(child) {
+        if (child == null) return;
+        if (this.containsChild(child)) return;
+        let parent = child.parent;
+        if (parent) {
+            parent.removeChild(child);
+        }
         this[_children].add(child);
+        child.parent = this;
+        return child;
+    }
+
+    getRelativeTransformMatrix(parent) {
+        let myMatrix = this.getTransformMatrix();
+        if (parent == this.parent) return myMatrix;
+        let m = this.relativeMatrix;
+        tielifa.Mat4.identityMatrix(m);
+        if (this.parent != null && this.parent != undefined) {
+            tielifa.Mat4.copy(this.parent.getRelativeTransformMatrix(parent), m);
+        }
+        tielifa.Mat4.multiply(m, m, myMatrix);
+        return m;
+    }
+
+    getTransformMatrix() {
+        if (this.isTransformChanged) { // 如果发生过transform的属性改变，就要重新计算一次
+            tielifa.Mat4.identityMatrix(this[_transformMatrix]); // 重置为单位矩阵
+            let currentMatrix = this[_transformMatrix];
+            let m = tielifa.Mat4.TEMP_MAT4[0]; // 这是要相乘的临时变化矩阵
+            tielifa.Mat4.identityMatrix(m);
+            let left = this.left;
+            let top = this.top;
+            let depth = this.depth;
+            let scaleX = this.scaleX;
+            let scaleY = this.scaleY;
+            let scaleZ = this.scaleZ;
+            let rotate = this.rotate;
+            let rotateX = this.rotateX;
+            let rotateY = this.rotateY;
+
+            if (!(Tools.equals(left, 0) && Tools.equals(top, 0) && Tools.equals(depth, 0))) {
+                tielifa.Mat4.translationMatrix(m, left, top, depth);
+                tielifa.Mat4.multiply(currentMatrix, currentMatrix, m);
+            }
+
+            let transformPoint = this.getTransformAnchor();
+            let transformX = transformPoint.x;
+            let transformY = transformPoint.y;
+            let transformZ = transformPoint.z;
+
+            let flag = false;
+            if (!(Tools.equals(transformX, 0) && Tools.equals(transformY, 0) && Tools.equals(transformZ, 0))) {
+                flag = true;
+            }
+            if (flag) {
+                tielifa.Mat4.translationMatrix(m, transformX, transformY, transformZ);
+                tielifa.Mat4.multiply(currentMatrix, currentMatrix, m);
+            }
+            if (!Tools.equals(rotate, 0)) {
+                tielifa.Mat4.rotationZMatrix(m, rotate * Tools.PIDIV180);
+                tielifa.Mat4.multiply(currentMatrix, currentMatrix, m);
+            }
+            if (!Tools.equals(rotateX, 0)) {
+                tielifa.Mat4.rotationXMatrix(m, rotateX * Tools.PIDIV180);
+                tielifa.Mat4.multiply(currentMatrix, currentMatrix, m);
+            }
+            if (!Tools.equals(rotateY, 0)) {
+                tielifa.Mat4.rotationYMatrix(m, rotateY * Tools.PIDIV180);
+                tielifa.Mat4.multiply(currentMatrix, currentMatrix, m);
+            }
+
+            if (flag) {
+                tielifa.Mat4.translationMatrix(m, -transformX, -transformY, -transformZ);
+                tielifa.Mat4.multiply(currentMatrix, currentMatrix, m);
+            }
+
+            if (!(Tools.equals(scaleX, 1) && Tools.equals(scaleY, 1) && Tools.equals(scaleZ, 1))) {
+                tielifa.Mat4.scalingMatrix(m, scaleX, scaleY, scaleZ);
+                tielifa.Mat4.multiply(currentMatrix, currentMatrix, m);
+            }
+            // 调整缩放后画布对应的老坐标的位置，
+            // 这里坐标都比以前要多出scale倍，所以要让缩放后figure还是绘制在以前的坐标上，就需要让整个画布位置变化一下
+            let newx = transformX / scaleX - transformX;
+            let newy = transformY / scaleY - transformY;
+            let newz = transformZ / scaleZ - transformZ;
+            if (!(Tools.equals(newx, 0) && Tools.equals(newy, 0) && Tools.equals(newz, 0))) {
+                tielifa.Mat4.translationMatrix(m, newx, newy, newz);
+                tielifa.Mat4.multiply(currentMatrix, currentMatrix, m);
+            }
+            this.fireTransformChange(false);// 生成完就设置为没有改变过，避免以后不必要的计算操作
+        }
+        return this[_transformMatrix];
+    }
+
+    getRelativeBounds(parent) {
+        let matrix = this.getRelativeTransformMatrix(parent);
+        let left = 0;
+        let right = this.width;
+        let top = 0;
+        let bottom = this.height;
+        this._tempP1[0] = left;
+        this._tempP1[1] = top;
+        this._tempP1[2] = this.depth;
+        this._tempP1[3] = 1;
+
+        this._tempP2[0] = right;
+        this._tempP2[1] = top;
+        this._tempP2[2] = this.depth;
+        this._tempP2[3] = 1;
+
+        this._tempP3[0] = left;
+        this._tempP3[1] = bottom;
+        this._tempP3[2] = this.depth;
+        this._tempP3[3] = 1;
+
+        this._tempP4[0] = right;
+        this._tempP4[1] = bottom;
+        this._tempP4[2] = this.depth;
+        this._tempP4[3] = 1;
+
+        let p1 = tielifa.Mat4.multiplyWithVertex(matrix, this._tempP1, this._tempP1);
+        let p2 = tielifa.Mat4.multiplyWithVertex(matrix, this._tempP2, this._tempP2);
+        let p3 = tielifa.Mat4.multiplyWithVertex(matrix, this._tempP3, this._tempP3);
+        let p4 = tielifa.Mat4.multiplyWithVertex(matrix, this._tempP4, this._tempP4);
+
+        let lp = p1;
+        if (p2[0] < lp[0]) lp = p2;
+        if (p3[0] < lp[0]) lp = p3;
+        if (p4[0] < lp[0]) lp = p4;
+
+        let tp = p1;
+        if (p2[1] < tp[1]) tp = p2;
+        if (p3[1] < tp[1]) tp = p3;
+        if (p4[1] < tp[1]) tp = p4;
+
+        let rp = p1;
+        if (p2[0] > rp[0]) rp = p2;
+        if (p3[0] > rp[0]) rp = p3;
+        if (p4[0] > rp[0]) rp = p4;
+
+        let bp = p1;
+        if (p2[1] > bp[1]) bp = p2;
+        if (p3[1] > bp[1]) bp = p3;
+        if (p4[1] > bp[1]) bp = p4;
+        this.relativeBounds.left = lp[0];
+        this.relativeBounds.top = tp[1];
+        this.relativeBounds.right = rp[0];
+        this.relativeBounds.bottom = bp[1];
+        this.relativeBounds.width = rp[0] - lp[0];
+        this.relativeBounds.height = bp[1] - tp[1];
+        return this.relativeBounds;
+    }
+
+
+    /**
+     * 仅判断子节点是否在和该figure相交
+     * @param child
+     * @returns {boolean}
+     */
+    isOutside(child) {
+        this[_selfBounds].right = this.width;
+        this[_selfBounds].bottom = this.height;
+        let b = child.getRelativeBounds(this);
+        return !Tools.overlaps(this[_selfBounds], b);
+    }
+
+    moveFigureToTop(figure) {
+        if (this.containsChild(figure)) {
+            let index1 = this.indexOf(figure);
+            let index2 = this.childrenSize - 1;
+            this[_children].exchangePosition(index1, index2);
+        }
     }
 
     removeChild(child) {
+        if (child == null) return;
         this[_children].remove(child);
+        child.parent = null;
+        return child;
     }
 }

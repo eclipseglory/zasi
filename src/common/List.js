@@ -4,6 +4,10 @@
 let _values = Symbol('List中的数据数组');
 export default class List {
 
+    constructor() {
+        this[_values] = [];
+    }
+
     get length() {
         return this[_values].length;
     }
@@ -16,8 +20,11 @@ export default class List {
         return this[_values];
     }
 
-    constructor() {
-        this[_values] = [];
+    exchangePosition(index1, index2) {
+        if (index1 == index2) return;
+        let temp = this[_values][index1];
+        this[_values][index1] = this[_values][index2];
+        this[_values][index2] = temp;
     }
 
     set(index, value) {
