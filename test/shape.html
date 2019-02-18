@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>Draw shapes</title>
     <script src="test.js"></script>
 </head>
 <body>
@@ -15,7 +15,7 @@
     import Circle from "../src/shape/Circle.js";
 
     createOneFullCanvas();
-    let graph = new Graph(webgl, {projectionType: 0});
+    let graph = new Graph(webgl, {enableDepthTest: true});
     let rect = new Rectangle({
         x: 0,
         y: 100,
@@ -39,9 +39,21 @@
         centerX: 200,
         centerY: 200,
         radius: 100,
-        color: 'purple',
-        rotateX: 270
+        color: 'purple'
     });
+    circle.transformAnchorCalculator = function(figure){
+        let dt = figure.getDefaultTransformAnchor();
+        dt.x = figure.radius;
+        dt.y = 0;
+        return dt;
+    };
+
+    ellipse.transformAnchorCalculator = function(figure){
+        let dt = figure.getDefaultTransformAnchor();
+        dt.x = 0;
+        dt.y = figure.height/2;
+        return dt;
+    };
 
     graph.addChild(circle);
     graph.addChild(rect);
@@ -50,13 +62,12 @@
         graph.update();
 
         ellipse.rotate += 0.5;
-        circle.rotateX += 0.5;
+        circle.rotate += 0.5;
         // console.log(circle.rotateX);
         rect.left += 0.4;
         rect.rotate += 0.1;
         requestAnimationFrame(update);
     }
-
     update();
 </script>
 </html>

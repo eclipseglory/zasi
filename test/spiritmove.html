@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spirit Move</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+<script type='module'>
+    import World from "../src/World.js";
+    import TestRectSpirit from "../src/spirit/TestRectSpirit.js";
+    createOneFullCanvas();
+    let world = new World(webgl, {enableDepthTest: true});
+    let rect = new TestRectSpirit({
+        velocity :{x:1,y:0},
+        angularVelocity : 0.01,
+        force : {x:0,y:0.01},
+        x: 0,
+        y: 100,
+        width: 100,
+        height: 100,
+        radius: 5,
+        color: 'red',
+        borderColor: 'yellow',
+        borderWidth: 4
+    });
+    world.addChild(rect);
+    world.startWorld();
+
+
+</script>
+</html>
