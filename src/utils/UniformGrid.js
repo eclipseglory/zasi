@@ -119,12 +119,13 @@ export default class UniformGrid {
                 return;// 没有改变就返回
             }
         }
-        while (figure.relatedRegions.length != 0) {
-            let id = figure.relatedRegions.pop();
+        for (let i = 0; i < figure.relatedRegions.length; i++) {
+            let id = figure.relatedRegions[i];
             let region = this.getRegion(id);
             region.removeFigure(figure);
         }
-        this.getRegions(topLeftRegion, rightBottomRegion, figure.relatedRegions,figure);
+        figure.relatedRegions.length = 0;
+        this.getRegions(topLeftRegion, rightBottomRegion, figure.relatedRegions, figure);
     }
 
     test() {

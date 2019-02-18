@@ -19,6 +19,7 @@ let _selfBounds = Symbol('figure相对于自身的bounds');
 let _contentChanged = Symbol('Figure内部绘制是否发生了改变');
 let _transformChanged = Symbol('Figure坐标、旋转、伸缩是否发生了改变');
 let _transformMatrix = Symbol('figure自身的变换4x4矩阵');
+let _center = Symbol('figure的中心位置');
 let GLOBAL_ID = 0;
 
 export default class Figure {
@@ -58,10 +59,18 @@ export default class Figure {
         this.relativeMatrix = tielifa.Mat4.identity();
         this[_transformChanged] = true;
         this[_contentChanged] = true;
+        this[_center] = new Dimension3();
         this._tempP1 = new Float32Array(4);
         this._tempP2 = new Float32Array(4);
         this._tempP3 = new Float32Array(4);
         this._tempP4 = new Float32Array(4);
+    }
+
+    get center() {
+        this[_center].x = this.width / 2;
+        this[_center].y = this.height / 2;
+        this[_center].z = this.depth / 2;
+        return this[_center];
     }
 
     get childrenSize() {
@@ -341,6 +350,7 @@ export default class Figure {
         ctx.restore();
     }
 
+
     applyTransform(ctx) {
         let matrix = this.getTransformMatrix();
         ctx.applyTransformMatrix(matrix);
@@ -607,6 +617,10 @@ export default class Figure {
         this.relativeBounds.width = rp[0] - lp[0];
         this.relativeBounds.height = bp[1] - tp[1];
         return this.relativeBounds;
+    }
+
+    getSelectBounds() {
+        return this.getRelativeBounds(this.getGraph());
     }
 
 
