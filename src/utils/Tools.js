@@ -26,4 +26,14 @@ export default class Tools {
         return Math.abs(a - b) <= EPSILON;
     }
 
+    static clamp(value, min, max) {
+        if (value > max) {
+            return max;
+        }
+        if (value < min) {
+            return min;
+        }
+        return value;
+    }
+
 }

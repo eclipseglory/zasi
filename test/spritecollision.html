@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>有问题的碰撞</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+<script type='module'>
+    import World from "../src/World.js";
+    import TestRectSpirit from "../src/spirit/TestRectSpirit.js";
+    import PhysicsModel from "../src/physics/PhysicsModel.js";
+
+    createOneFullCanvas();
+    let world = new World(webgl, {enableDepthTest: true, e: 0});
+    let rect = new TestRectSpirit({
+        velocity: {x: 1, y: 0},
+        angularVelocity: 0.01,
+        force: {x: 0, y: 0.01},
+        x: 100,
+        y: 100,
+        width: 50,
+        height: 50
+    });
+    rect.physicsModel = PhysicsModel.createDefaultModel(rect);
+    let border1 = new TestRectSpirit({
+        x: 0,
+        y: 0,
+        width: world.width,
+        height: 50,
+        color: 'yellow',
+        mass: Infinity
+    });
+    border1.physicsModel = PhysicsModel.createDefaultModel(border1);
+    let border2 = new TestRectSpirit({
+        x: world.width - 50,
+        y: 0,
+        width: 50,
+        height: world.height,
+        color: 'yellow',
+        mass: Infinity
+    });
+    border2.physicsModel = PhysicsModel.createDefaultModel(border2);
+    let border3 = new TestRectSpirit({
+        x: 0,
+        y: world.height - 50,
+        width: world.width,
+        height: 50,
+        color: 'yellow',
+        mass: Infinity
+    });
+    border3.physicsModel = PhysicsModel.createDefaultModel(border3);
+    let border4 = new TestRectSpirit({
+        x: 0,
+        y: 0,
+        width: 50,
+        height: world.height,
+        color: 'yellow',
+        mass: Infinity
+    });
+    border4.physicsModel = PhysicsModel.createDefaultModel(border4);
+    world.addChild(rect);
+    world.addChild(border1);
+    world.addChild(border2);
+    world.addChild(border3);
+    world.addChild(border4);
+    world.startWorld();
+
+
+</script>
+</html>

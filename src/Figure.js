@@ -619,6 +619,16 @@ export default class Figure {
         return this.relativeBounds;
     }
 
+    get absoluteRotate(){
+        let rotate = this.rotate;
+        let parent = this.parent;
+        while(parent != null){
+            rotate += parent.rotate;
+            parent = parent.parent;
+        }
+        return rotate;
+    }
+
     getSelectBounds() {
         return this.getRelativeBounds(this.getGraph());
     }

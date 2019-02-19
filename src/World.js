@@ -2,6 +2,9 @@ import Graph from "./Graph.js";
 import LoopThreadWrapper from "./LoopThreadWrapper.js";
 import AbstractSpirit from "./spirit/AbstractSpirit.js";
 import UniformGrid from "./utils/UniformGrid.js";
+import Tools from "./utils/Tools.js";
+import SAT from "./common/SAT.js";
+import RigidPhysics from "./physics/RigidPhysics.js";
 
 export default class World extends Graph {
     constructor(canvas, p) {
@@ -16,7 +19,9 @@ export default class World extends Graph {
         };
         this.p1 = undefined;
         this.p2 = undefined;
+        this.collisionE = p['e'] || 1;
         this.uniformGrid = new UniformGrid(gridRow, gridColumn, this.width, this.height);
+        this.showDebug = p['showDebug'] || false;
     }
 
     repeat(refreshCount) {
@@ -46,56 +51,69 @@ export default class World extends Graph {
     monitorSpiritAfterMove(evt) {
         let figure = evt.figure;
         let world = figure.getGraph();
-        let sleeping = figure.isSleeping;
+        let physicsModel = figure.physicsModel;
         let changed = figure.isTransformChanged;
         if (changed) {
-            if(world.uniformGrid){
+            if (world.uniformGrid) {
                 world.uniformGrid.updateRegionsOfFigure(figure);
             }
         }
-        // let testedPairs = [];
-        // if (!sleeping) {
-        //     let regionIds = figure.relatedRegions;
-        //     for (let i = 0; i < regionIds.length; i++) {
-        //         let id = regionIds[i];
-        //         let region = this.uniformGrid.getRegion(id);
-        //         for (let j = 0; j < region.relatedFigures.length; j++) {
-        //             let f = region.relatedFigures.get(j);
-        //             if (f == figure) {
-        //                 continue;
-        //             }
-        //             if (isTested(f, figure)) {
-        //                 continue;
-        //             }
-        //             if (Tools.overlaps(figure.getSelectBounds(), f.getSelectBounds())) {
-        //                 let result = SAT.collisionTest(figure,f);
-        //                 if(result.collision){
-        //                     RigidPhysics.solveCollision(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
-        //                         , result.contactPoints, result.contactPlane, result.MTV.direction, 1, result.MTV.minOverlap.value);
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
-        //
-        // function isTested(figure1, figure2) {
-        //     for (let i = 0; i < testedPairs.length; i++) {
-        //         let pair = testedPairs[i];
-        //         if (pair.s == figure1 && pair.t == figure2) {
-        //             return true;
-        //         }
-        //         if (pair.s == figure2 && pair.t == figure1) {
-        //             return true;
-        //         }
-        //     }
-        //     let pair = {};
-        //     pair.s = figure1;
-        //     pair.t = figure2;
-        //     testedPairs.push(pair);
-        //     return false;
-        // }
-        // testedPairs.length = 0;
-        figure.getGraph().fireEvent('afterRepeat', evt);
+        let testedPairs;
+
+        if (figure.contactable && physicsModel != null) {
+            testedPairs = [];
+            let sleeping = figure.isSleeping;
+            if (!sleeping) {
+                let regionIds = figure.relatedRegions;
+                for (let i = 0; i < regionIds.length; i++) {
+                    let id = regionIds[i];
+                    let region = world.uniformGrid.getRegion(id);
+                    for (let j = 0; j < region.relatedFigures.length; j++) {
+                        let f = region.relatedFigures.get(j);
+                        if (f.physicsModel == null) continue;
+                        if (f == figure) {
+                            continue;
+                        }
+                        if (isTested(f, figure)) {
+                            continue;
+                        }
+                        if (Tools.overlaps(figure.getSelectBounds(), f.getSelectBounds())) {
+                            // if (changed)
+                            let modelA = physicsModel;
+                            let modelB = f.physicsModel;
+                            modelA.applyCurrentTransform(figure.absoluteRotate, figure.getTransformMatrix());
+                            modelB.applyCurrentTransform(f.absoluteRotate, f.getTransformMatrix());
+                            let result = SAT.collisionTest(modelA, modelB);
+                            if (result.collision) {
+                                RigidPhysics.solveCollision(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
+                                    , result.contactPoints, result.contactPlane, result.MTV.direction, world.collisionE, result.MTV.minOverlap.value);
+                            }
+                        }
+                    }
+                }
+            }
+
+
+            testedPairs.length = 0;
+        }
+        world.fireEvent('afterRepeat', evt);
+
+        function isTested(figure1, figure2) {
+            for (let i = 0; i < testedPairs.length; i++) {
+                let pair = testedPairs[i];
+                if (pair.s == figure1 && pair.t == figure2) {
+                    return true;
+                }
+                if (pair.s == figure2 && pair.t == figure1) {
+                    return true;
+                }
+            }
+            let pair = {};
+            pair.s = figure1;
+            pair.t = figure2;
+            testedPairs.push(pair);
+            return false;
+        }
     }
 
     startWorld() {
@@ -112,6 +130,8 @@ export default class World extends Graph {
 
     draw(ctx) {
         super.draw(ctx);
+        if (this.showDebug)
+            this._debug_drawPhysicsModel();
         // ctx.save();
         // drawPoint(ctx, this.p1, "green");
         // drawPoint(ctx, this.p2, "red");
@@ -156,6 +176,34 @@ export default class World extends Graph {
         // //     ctx.strokeStyle = 'green';
         // //     ctx.stroke();
         // // }
+    }
+
+    _debug_drawPhysicsModel() {
+        this.ctx.save();
+        this.ctx.strokeStyle = 'red';
+        for (let i = 0; i < this.children.length; i++) {
+            let c = this.getChild(i);
+            let m = c.physicsModel;
+            if (m) {
+                this.ctx.beginPath();
+                this.ctx.moveTo(m.vertices[0].x, m.vertices[0].y);
+                for (let j = 1; j < m.vertices.length; j++) {
+                    let v = m.vertices[j];
+                    this.ctx.lineTo(v.x, v.y);
+                }
+                this.ctx.closePath();
+                let length = 10;
+                for (let j = 0; j < m.axis.length; j++) {
+                    let a = m.axis[j];
+                    this.ctx.moveTo(m.center.x, m.center.y);
+                    let x1 = a.x * length;
+                    let y1 = a.y * length;
+                    this.ctx.lineTo(m.center.x + x1, m.center.y + y1);
+                }
+                this.ctx.stroke();
+            }
+        }
+        this.ctx.restore();
     }
 
 }

@@ -5,7 +5,6 @@ import Point2D from "../common/Point2D.js";
 import LoopThreadWrapper from "../LoopThreadWrapper.js";
 import '../../libs/tielifa.min.js';
 import World from "../World.js";
-import PhysicsModel from "../physics/PhysicsModel";
 
 let _velocity = Symbol('速度');
 let _angularVelocity = Symbol('角速度');
@@ -23,9 +22,8 @@ let _preVelocity = Symbol('前一时刻的速度');
 let _preAngularVelocity = Symbol('前一时刻的角速度');
 let _prePosition = Symbol('前一时间的位置');
 let _preRotation = Symbol('前一时刻的旋转度数');
-let _physicsShape = Symbol('图形的物理性状，这是一组按照顺时针排列的点,以及一个类型属性');
-let _physicsShapeCreator = Symbol('创建物理性状的接口');
-let _physicsModel = Symbol('figure的物理模型。自动根据物理性状生成.');
+let _physicsModel = Symbol('figure的物理模型');
+let _contactable = Symbol('是否可碰撞，true则会进行碰撞测试，反之不会');
 
 const DELTA_TIME = 1;//1000 / 60;
 const RADIAN_TO_ANGEL_CONST = 180 / Math.PI;
@@ -34,6 +32,7 @@ export default class AbstractSpirit extends Figure {
     constructor(p) {
         p = p || {};
         super(p);
+        this[_contactable] = true;
         this[_preVelocity] = new tielifa.Vector2(0, 0);
         this[_prePosition] = new Point2D(0, 0);
         this[_preAngularVelocity] = 0;
@@ -41,7 +40,6 @@ export default class AbstractSpirit extends Figure {
         this[_velocity] = p['velocity'] || new tielifa.Vector2(0, 0);
         this[_force] = p['force'] || new tielifa.Vector2(0, 0);
         this[_angularVelocity] = p['angularVelocity'] || 0;
-        this[_physicsShapeCreator] = p['physicsShapeCreator'];
         this[_acceleration] = new tielifa.Vector2(0, 0);
         this[_sleepx] = false;
         this[_sleepy] = false;
@@ -57,13 +55,18 @@ export default class AbstractSpirit extends Figure {
         this.afterRepeat = new List();
     }
 
-    get physicsShapeCreator() {
-        return this[_physicsShapeCreator];
+    get contactable() {
+        return this[_contactable];
     }
 
-    set physicsShapeCreator(creator) {
-        this[_physicsShapeCreator] = creator;
+    set contactable(c) {
+        this[_contactable] = c;
     }
+
+    get physicsModel() {
+        return this[_physicsModel];
+    }
+
 
     addAfterRepeatListener(listener) {
         this.afterRepeat.add(listener);
@@ -307,21 +310,12 @@ export default class AbstractSpirit extends Figure {
         }
     }
 
-    createPhysicsModel() {
-        if (this[_physicsShape] == null) {
-            if (this[_physicsShapeCreator] != null) {
-                this[_physicsShape] = this.physicsShapeCreator(this.width, this.height);
-            } else {
-                // 默认就是自身的box
-                this[_physicsShape] = [];
-                this[_physicsShape].push({x: 0, y: 0});
-                this[_physicsShape].push({x: this.width, y: 0});
-                this[_physicsShape].push({x: this.width, y: this.height});
-                this[_physicsShape].push({x: 0, y: this.height});
-                this[_physicsModel] = new PhysicsModel();
-                this[_physicsModel].generateModel(this[_physicsShape]);
-            }
-        }
+    set physicsModel(model) {
+        this[_physicsModel] = model;
+    }
+
+    get physicsModel() {
+        return this[_physicsModel];
     }
 
     startMove() {
@@ -333,7 +327,6 @@ export default class AbstractSpirit extends Figure {
             this.addAfterRepeatListener(world.monitorSpiritAfterMove);
             this.addBeforeRepeatListener(world.monitorSpiritBeforeMove);
         }
-        this.createPhysicsModel();
         this.thread.start();
     }
 
