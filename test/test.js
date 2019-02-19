@@ -22,7 +22,7 @@ function createCompareCanvas(){
 }
 
 function createOneFullCanvas(){
-    let margin = 10;
+    let margin = 0;
     let body = document.body;
     body.style.margin = margin;
     body.style.padding = 0;

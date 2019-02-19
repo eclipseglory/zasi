@@ -391,7 +391,7 @@ export default class RigidPhysics {
         let contactPointsArray = [];
         let contactPoint1 = contactPoints[0].vertices[contactPoints[0].index];
         let contactPoint2;
-        if (contactPoints[0].figure == figureA) {
+        if (contactPoints[0].figure == figureA.physicsModel) {
             contactPoint1.x += direction.x;
             contactPoint1.y += direction.y;
         }
@@ -399,7 +399,7 @@ export default class RigidPhysics {
         if (contactPoints[1] != undefined) {
             contactPoint2 = contactPoints[1].vertices[contactPoints[1].index];
             contactPointsArray.push(contactPoint2);
-            if (contactPoints[1].figure == figureA) {
+            if (contactPoints[1].figure == figureA.physicsModel) {
                 contactPoint2.x += direction.x;
                 contactPoint2.y += direction.y;
             }

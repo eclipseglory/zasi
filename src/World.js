@@ -59,7 +59,6 @@ export default class World extends Graph {
             }
         }
         let testedPairs;
-
         if (figure.contactable && physicsModel != null) {
             testedPairs = [];
             let sleeping = figure.isSleeping;
@@ -70,15 +69,15 @@ export default class World extends Graph {
                     let region = world.uniformGrid.getRegion(id);
                     for (let j = 0; j < region.relatedFigures.length; j++) {
                         let f = region.relatedFigures.get(j);
-                        if (f.physicsModel == null) continue;
                         if (f == figure) {
                             continue;
                         }
+                        if (f.physicsModel == null) continue;
                         if (isTested(f, figure)) {
                             continue;
                         }
+                        testedPairs.push({s: figure, t: f});
                         if (Tools.overlaps(figure.getSelectBounds(), f.getSelectBounds())) {
-                            // if (changed)
                             let modelA = physicsModel;
                             let modelB = f.physicsModel;
                             modelA.applyCurrentTransform(figure.absoluteRotate, figure.getTransformMatrix());
@@ -86,7 +85,7 @@ export default class World extends Graph {
                             let result = SAT.collisionTest(modelA, modelB);
                             if (result.collision) {
                                 RigidPhysics.solveCollision(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
-                                    , result.contactPoints, result.contactPlane, result.MTV.direction, world.collisionE, result.MTV.minOverlap.value);
+                                    , result.contactPoints, result.contactPlane, result.MTV.direction, 1, result.MTV.minOverlap.value);
                             }
                         }
                     }

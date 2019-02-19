@@ -123,12 +123,16 @@ export default class AbstractSpirit extends Figure {
     }
 
     get momentInertia() {
-        if (this[_inertia] == undefined) {
-            // 默认的转动惯量是绕中心转的2d矩形的转动惯量： I = m*(w^2 + h^2)/12;
-            this[_inertia] = this[_mass] * (this.width * this.width + this.height * this.height) / 12;
-
+        if (this.mass == Infinity) return Infinity;
+        if(this[_physicsModel] == null){
+            if (this[_inertia] == undefined) {
+                // 默认的转动惯量是绕中心转的2d矩形的转动惯量： I = m*(w^2 + h^2)/12;
+                this[_inertia] = this[_mass] * (this.width * this.width + this.height * this.height) / 12;
+            }
+            return this[_inertia];
+        }else{
+            return this[_physicsModel].momentInertia;
         }
-        return this[_inertia];
     }
 
     get isSleeping() {

@@ -1,5 +1,5 @@
 /**
- * 包含有边，以及边的法向量，以及模型类型（多边形或圆形）
+ * 包含有边，以及边的法向量，质量，转动官能等以及模型类型（多边形或圆形）
  */
 import GeometryTools from "../geometry/GeometryTools.js";
 import "../../libs/tielifa.min.js";
@@ -21,6 +21,36 @@ export default class PhysicsModel {
         this.originalAxis = [];
         this.originalCenter = null;
         this.center = null;
+        this._mass = 1;
+        this.inertia;
+    }
+
+    get mass(){
+        return this._mass;
+    }
+
+    set mass(m){
+        this._mass = m;
+    }
+
+    get momentInertia() {
+        if (this.mass == Infinity) return Infinity;
+        if (this.inertia == undefined) {
+            let numerator = 0;
+            let denominator = 0;
+            let v = this.vertices;
+            for (let n = 0; n < v.length; n++) {
+                let j = (n + 1) % v.length;
+                let cross = Math.abs(tielifa.Vector2.cross(v[j], v[n]));
+                numerator += cross * (tielifa.Vector2.dot(v[j], v[j]) + tielifa.Vector2.dot(v[j], v[n]) + tielifa.Vector2.dot(v[n], v[n]));
+                denominator += cross;
+            }
+            if (denominator == 0) {
+                return 1;
+            }
+            this.inertia = (this.mass / 6) * (numerator / denominator);
+        }
+        return this.inertia;
     }
 
     static createDefaultModel(figure) {
@@ -30,11 +60,11 @@ export default class PhysicsModel {
         vertices.push({x: figure.width, y: 0});
         vertices.push({x: figure.width, y: figure.height});
         vertices.push({x: 0, y: figure.height});
-        m.generateModel(vertices,figure.center);
+        m.generateModel(vertices,figure.center,figure.mass);
         return m;
     }
 
-    generateModel(shapeInfor, center) {
+    generateModel(shapeInfor, center,mass) {
         if (shapeInfor instanceof Array) {
             this.type = POLYGON_TYPE;
             this.vertices = shapeInfor;
@@ -56,6 +86,8 @@ export default class PhysicsModel {
             this.radiusX = shapeInfor.radiusX;
             this.radiusY = shapeInfor.radiusY;
         }
+        this.mass = mass;
+        this.momentInertia;
     }
 
     applyCurrentTransform(rotate, matrix) {
