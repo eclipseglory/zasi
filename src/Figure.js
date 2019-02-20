@@ -173,7 +173,7 @@ export default class Figure {
     afterDraw(ctx) {
         FIGURE_EVENT.name = EVENT_AFTER_DRAW_SELF;
         FIGURE_EVENT.figure = this;
-        this.fireEvent(EVENT_BEFORE_DRAW_SELF, FIGURE_EVENT);
+        this.fireEvent(EVENT_AFTER_DRAW_SELF, FIGURE_EVENT);
     }
 
 

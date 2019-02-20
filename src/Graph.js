@@ -2,6 +2,8 @@ import Figure from "./Figure.js";
 import '../libs/tielifa.min.js';
 import LoopThreadWrapper from "./LoopThreadWrapper.js";
 
+let _paused = Symbol('暂停循环刷新是否已暂停');
+
 export default class Graph extends Figure {
     constructor(canvas, p) {
         super(p);
@@ -18,6 +20,11 @@ export default class Graph extends Figure {
         this._loop.repeat = function (refreshCount) {
             that.loopRefresh(refreshCount);
         };
+        this[_paused] = false;
+    }
+
+    get paused(){
+        return this[_paused];
     }
 
     update() {
@@ -46,7 +53,8 @@ export default class Graph extends Figure {
                 this.loopInterface.loopStart();
             }
         }
-        this.update()
+        if (this.paused) return;
+        this.update();
         if (this.loopInterface) {
             if (this.loopInterface.loopEnd) {
                 this.loopInterface.loopEnd();
@@ -54,7 +62,15 @@ export default class Graph extends Figure {
         }
     }
 
+    pause() {
+        this[_paused] = true;
+    }
+
     startLoopRefresh(loopinterface) {
+        if (this.paused) {
+            this[_paused] = false;
+            return;
+        }
         this.loopInterface = loopinterface;
         this._loop.start();
     }

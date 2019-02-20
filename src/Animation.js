@@ -11,7 +11,7 @@ const PRE_FRAME_REFRESH_NUM = 60 / 1000;
 export default class Animation {
 
     get isRunning() {
-        return this.loopThread.isRunning;
+        return this._startRun;
     }
 
     get loop() {
@@ -69,20 +69,38 @@ export default class Animation {
         this.finalValues = [];
         this.originalValues = [];
         this.applyProperties = [];
-        this.startRun = false;
+        this._startRun = false;
         this.preAnimation = undefined;
         this.nextAnimation = undefined;
         let that = this;
         this.loopFunction = function (evt) {
-            if (!that.startRun) return;
+            if (!that._startRun) return;
             that.repeat();
             that.refreshCount++;
         };
-        this.paused = false;
+        this._paused = false;
         this[_loop] = 0;
         this[_temploop] = undefined;
         this.callbacks = callbacks;
         this.refreshCount = 0;
+    }
+
+    get paused() {
+        let runnedAnimation = this;
+        while (runnedAnimation) {
+            if (runnedAnimation._paused) {
+                return true;
+            }
+            runnedAnimation = runnedAnimation.preAnimation;
+        }
+        let unRunnedAnimation = this;
+        while (unRunnedAnimation) {
+            if (unRunnedAnimation._paused) {
+                return true;
+            }
+            unRunnedAnimation = unRunnedAnimation.nextAnimation;
+        }
+        return false;
     }
 
 
@@ -274,7 +292,7 @@ export default class Animation {
         }
 
         // 先让当前动画停下来
-        this.startRun = false;
+        this._startRun = false;
         this.refreshCount = 0;
         if (this.loop > 0) this.loop--;
         // 说明是无限循环的
@@ -322,15 +340,53 @@ export default class Animation {
         }
     }
 
+    setRunningAnimationOnChainPause(flag) {
+
+        if (flag && this.isRunning){
+            this._startRun = !flag;
+            this._paused = flag;
+            return;
+        }
+        if(!flag && this._paused){
+            this._startRun = !flag;
+            this._paused = flag;
+            return;
+        }
+
+        let runnedAnimation = this.preAnimation;
+        while (runnedAnimation) {
+            if (flag && runnedAnimation.isRunning){
+                runnedAnimation._startRun = !flag;
+                runnedAnimation._paused = flag;
+            }
+            if(!flag && runnedAnimation._paused){
+                runnedAnimation._startRun = !flag;
+                runnedAnimation._paused = flag;
+            }
+            runnedAnimation = runnedAnimation.preAnimation;
+        }
+        let unRunnedAnimation = this.nextAnimation;
+        while (unRunnedAnimation) {
+            if (flag && unRunnedAnimation.isRunning){
+                unRunnedAnimation._startRun = !flag;
+                unRunnedAnimation._paused = flag;
+            }
+            if(!flag && unRunnedAnimation._paused){
+                unRunnedAnimation._startRun = !flag;
+                unRunnedAnimation._paused = flag;
+            }
+            unRunnedAnimation = unRunnedAnimation.nextAnimation;
+        }
+        return;
+    }
+
     pause() {
-        this.startRun = false;
-        this.paused = true;
+        this.setRunningAnimationOnChainPause(true);
     }
 
     start(callbacks) {
         if (this.paused) {
-            this.paused = false;
-            this.startRun = true;
+            this.setRunningAnimationOnChainPause(false);
         } else {
             this.figure.addEventListener(Figure.EVENT_BEFORE_DRAW_SELF, this.loopFunction);
             if (callbacks)
@@ -350,11 +406,11 @@ export default class Animation {
         if (this.delay != null) {
             setTimeout(function () {
                 that.refreshCount = 0;
-                that.startRun = true;
+                this._startRun = true;
             }, this.delay);
         } else {
             this.refreshCount = 0;
-            this.startRun = true;
+            this._startRun = true;
         }
     }
 }

@@ -11,7 +11,14 @@
 <script type='module'>
     import World from "../src/World.js";
     import TestRectSpirit from "../src/spirit/TestRectSpirit.js";
-    createOneFullCanvas();
+    createOneFullCanvas('Press canvas to pause/resume rect move');
+    webgl.onmousedown = function () {
+        if (rect.paused) {
+            rect.startMove();
+        } else {
+            rect.pauseMove();
+        }
+    };
     let world = new World(webgl, {enableDepthTest: true});
     let rect = new TestRectSpirit({
         velocity :{x:1,y:0},

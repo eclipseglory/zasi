@@ -24,13 +24,14 @@ let _preRotation = Symbol('前一时刻的旋转度数');
 let _physicsModel = Symbol('figure的物理模型');
 let _contactable = Symbol('是否可碰撞，true则会进行碰撞测试，反之不会');
 let _move = Symbol('是否运动，如果为false则不会根据其速度重新计算位置');
+let _paused = Symbol('暂停运动');
 
 const DELTA_TIME = 1;//1000 / 60;
 const RADIAN_TO_ANGEL_CONST = 180 / Math.PI;
 const ANGEL_TO_RADIAN_CONST = Math.PI / 180;
 const BEFORE_CALCULATEPOSE_EVENT = 'beforeCalculatePose';
 const AFTER_CALCULATEPOSE_EVENT = 'afterCalculatePose';
-const CEVENT = {name:null,figure:null};
+const CEVENT = {name: null, figure: null};
 export default class AbstractSpirit extends Figure {
     constructor(p) {
         p = p || {};
@@ -50,6 +51,7 @@ export default class AbstractSpirit extends Figure {
         this[_move] = false;
         // 质心位置默认是在中心
         this[_massCenter] = p['massCenter'];
+        this[_paused] = false;
     }
 
     get contactable() {
@@ -232,7 +234,7 @@ export default class AbstractSpirit extends Figure {
 
     beforeDraw(ctx) {
         super.beforeDraw(ctx);
-        if (this[_move]) {
+        if (this[_move] && !this.paused) {
             this.calculateCurrentPose();
         }
     }
@@ -305,15 +307,28 @@ export default class AbstractSpirit extends Figure {
     }
 
     startMove() {
+        if (this.paused) {
+            this[_paused] = false;
+            return;
+        }
         this[_sleepx] = false;
         this[_sleepy] = false;
         this[_sleepRotate] = false;
         this[_move] = true;
+        this[_paused] = false;
         let world = this.getGraph();
         if (world != undefined) {
             this.addEventListener(BEFORE_CALCULATEPOSE_EVENT, world.monitorSpiritBeforeMove);
             this.addEventListener(AFTER_CALCULATEPOSE_EVENT, world.monitorSpiritAfterMove);
         }
+    }
+
+    get paused() {
+        return this[_paused];
+    }
+
+    pauseMove() {
+        this[_paused] = true;
     }
 
     stopMove() {
@@ -324,6 +339,7 @@ export default class AbstractSpirit extends Figure {
         this[_velocity].x = this[_velocity].y = 0;
         this[_angularVelocity] = 0;
         this[_force].x = this[_force].y = 0;
+        this[_paused] = false;
         let world = this.getGraph();
         if (world != undefined) {
             this.removeEventListener(BEFORE_CALCULATEPOSE_EVENT, world.monitorSpiritBeforeMove);

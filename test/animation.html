@@ -14,7 +14,19 @@
     import Rectangle from "../src/shape/Rectangle.js";
     import Animation from "../src/Animation.js";
 
-    createOneFullCanvas();
+    createOneFullCanvas('Press canvas to pause/resume some animations');
+    webgl.onmousedown = function () {
+        if (animation.paused) {
+            animation.start();
+        } else {
+            animation.pause();
+        }
+        if (animation1.paused) {
+            animation1.start();
+        } else {
+            animation1.pause();
+        }
+    };
     let graph = new Graph(webgl);
 
     let rect = new Rectangle({
@@ -30,7 +42,6 @@
     animation.moveTo(500, 500).then(1000).rotateTo(360).start({
         complete: function () {
             console.log('动画链完成');
-            animation1.pause();
         }
     });
 
@@ -44,7 +55,7 @@
     graph.addChild(rect1);
     let animation1 = new Animation(rect1, 1000);
     animation1.loop = -1;
-    animation1.moveTo(500, 500).then(1000).moveTo(200,100).start({
+    animation1.moveTo(500, 500).then(1000).moveTo(200, 100).start({
         complete: function () {
             console.log('这句话显示就说明错了');
         }
@@ -60,10 +71,9 @@
     graph.addChild(rect2);
     let animation2 = new Animation(rect2, 2000);
     animation2.loop = 2;
-    animation2.moveTo(500, 200).then(1000).scaleTo(2,2).start({
+    animation2.moveTo(500, 200).then(1000).scaleTo(2, 2).start({
         complete: function () {
             console.log('有限循环动画链完成');
-            animation1.start();
         }
     });
 
