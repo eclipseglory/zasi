@@ -5,7 +5,8 @@ let _delay = Symbol("动画延迟开始的时间值");
 let _loop = Symbol("动画循环次数");
 let _temploop = Symbol('xunhuancishu temp');
 let _totalTime = Symbol('动画的总时长,单位毫秒');
-
+const COMPLETE = 'complete';
+const INTERRUPT = 'interrupt';
 const PRE_FRAME_REFRESH_NUM = 60 / 1000;
 export default class Animation {
 
@@ -76,7 +77,8 @@ export default class Animation {
             if (!that.startRun) return;
             that.repeat();
             that.refreshCount++;
-        }
+        };
+        this.paused = false;
         this[_loop] = 0;
         this[_temploop] = undefined;
         this.callbacks = callbacks;
@@ -241,22 +243,36 @@ export default class Animation {
             this.complete();
             if (this.nextAnimation) {
                 this.nextAnimation.launchImmediately();
-                return;
             }
-            return;
         }
     }
 
     complete() {
-        this.stop('complete');
+        this.stop(COMPLETE);
     }
 
     interrupt() {
-        this.stop('interrupt');
+        this.stop(INTERRUPT);
     }
 
     stop(type) {
-        type = type || 'interrupt';
+        type = type || INTERRUPT;
+        if (type === INTERRUPT) {
+            //如果被打断，恢复figure之前的所有数据
+            let runnedAnimation = this;
+            while (runnedAnimation !== null) {
+                runnedAnimation.applyOriginalValue();
+                this.figure.removeEventListener(Figure.EVENT_BEFORE_DRAW_SELF, runnedAnimation.loopFunction);
+                runnedAnimation = runnedAnimation.preAnimation;
+            }
+            let unRunnedAnimation = this.nextAnimation;
+            while (unRunnedAnimation !== null) {
+                this.figure.removeEventListener(Figure.EVENT_BEFORE_DRAW_SELF, unRunnedAnimation.loopFunction);
+                unRunnedAnimation = unRunnedAnimation.nextAnimation;
+            }
+            return;
+        }
+
         // 先让当前动画停下来
         this.startRun = false;
         this.refreshCount = 0;
@@ -270,15 +286,15 @@ export default class Animation {
         } else {
             firstAnimation = this;
         }
-        if (this.loop == 0) {
+        if (this.loop === 0) {
             this.cleanAnimationData();
             this.figure.removeEventListener(Figure.EVENT_BEFORE_DRAW_SELF, this.loopFunction);
             if (this.callbacks) {
-                if (type == 'interrupt') {
+                if (type === INTERRUPT) {
                     if (this.callbacks.stop) {
                         this.callbacks.stop();
                     }
-                } else if (type == 'complete') {
+                } else if (type === COMPLETE) {
                     if (this.callbacks.complete) {
                         this.callbacks.complete();
                     }
@@ -294,7 +310,7 @@ export default class Animation {
             // 则找到动画链最开始的动画来一遍，在开始之前，要把动画链所有的初始状态恢复给figure
             if (this.preAnimation) {
                 let runnedAnimation = this;
-                while (runnedAnimation != firstAnimation) {
+                while (runnedAnimation !== firstAnimation) {
                     runnedAnimation.applyOriginalValue();
                     runnedAnimation = runnedAnimation.preAnimation;
                 }
@@ -306,22 +322,32 @@ export default class Animation {
         }
     }
 
+    pause() {
+        this.startRun = false;
+        this.paused = true;
+    }
+
     start(callbacks) {
-        this.figure.addEventListener(Figure.EVENT_BEFORE_DRAW_SELF, this.loopFunction);
-        if (callbacks)
-            this.callbacks = callbacks;
-        if (this.preAnimation) {
-            this.preAnimation.start();
+        if (this.paused) {
+            this.paused = false;
+            this.startRun = true;
         } else {
-            // 先将figure的值设置成初始值在开始运行动画
-            this.applyOriginalValue();
-            this.launchImmediately();
+            this.figure.addEventListener(Figure.EVENT_BEFORE_DRAW_SELF, this.loopFunction);
+            if (callbacks)
+                this.callbacks = callbacks;
+            if (this.preAnimation) {
+                this.preAnimation.start();
+            } else {
+                // 先将figure的值设置成初始值在开始运行动画
+                this.applyOriginalValue();
+                this.launchImmediately();
+            }
         }
     }
 
     launchImmediately() {
         let that = this;
-        if (this.delay != null && this.delay != undefined) {
+        if (this.delay != null) {
             setTimeout(function () {
                 that.refreshCount = 0;
                 that.startRun = true;

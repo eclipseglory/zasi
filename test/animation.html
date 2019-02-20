@@ -15,7 +15,7 @@
     import Animation from "../src/Animation.js";
 
     createOneFullCanvas();
-    let graph = new Graph(webgl, {enableDepthTest: true, e: 1, showDebug: true});
+    let graph = new Graph(webgl);
 
     let rect = new Rectangle({
         x: 100,
@@ -30,6 +30,7 @@
     animation.moveTo(500, 500).then(1000).rotateTo(360).start({
         complete: function () {
             console.log('动画链完成');
+            animation1.pause();
         }
     });
 
@@ -62,6 +63,7 @@
     animation2.moveTo(500, 200).then(1000).scaleTo(2,2).start({
         complete: function () {
             console.log('有限循环动画链完成');
+            animation1.start();
         }
     });
 
