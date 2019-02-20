@@ -158,7 +158,7 @@ export default class Figure {
         this.applyTransform(ctx);
         this.applyDrawingStyle(ctx);
         this.drawSelf(ctx);
-        this.afterDraw(ctx)
+        this.afterDraw(ctx);
         this.updateChildren(ctx);
         ctx.restore();
 

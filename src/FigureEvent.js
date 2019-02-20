@@ -1,3 +1,6 @@
+/**
+ * 没啥用
+ */
 export default class FigureEvent {
     constructor(name, target, p) {
         this.name = name;

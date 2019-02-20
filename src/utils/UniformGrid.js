@@ -63,9 +63,9 @@ export default class UniformGrid {
     }
 
     getRegion(id) {
-        let rowIndex = Math.floor(id / this.row);
-        let columnIndex = id % this.row;
+        let rowIndex = Math.floor(id / this.column);
         if (this.regions[rowIndex] != undefined) {
+            let columnIndex = id - rowIndex * this.column;
             return this.regions[rowIndex][columnIndex];
         }
     }
