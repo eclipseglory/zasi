@@ -1,13 +1,16 @@
 import LoopThreadWrapper from "./LoopThreadWrapper.js";
-import Figure from "./Figure.js";
 
 let _delay = Symbol("动画延迟开始的时间值");
 let _loop = Symbol("动画循环次数");
-let _temploop = Symbol('xunhuancishu temp');
+let _temploop = Symbol();
 let _totalTime = Symbol('动画的总时长,单位毫秒');
 
 const PRE_FRAME_REFRESH_NUM = 60 / 1000;
-export default class Animation {
+/**
+ * @deprecated
+ * 将不再使用rAF作为动画循环，全部都移到总的Graph绘制循环中
+ */
+export default class RAFAnimation {
 
     get isRunning() {
         return this.loopThread.isRunning;
@@ -62,25 +65,22 @@ export default class Animation {
         this.id = new Date().getTime().toString() + Math.floor(Math.random() * 100);
         if (!figure) throw Error('动画主体figure不能为空');
         this.figure = figure;
-
         this.type = type || LINEAR;
         this[_totalTime] = totalTime || 500;
         this.finalValues = [];
         this.originalValues = [];
         this.applyProperties = [];
-        this.startRun = false;
+        var that = this;
+        this.loopThread = new LoopThreadWrapper();
+        this.loopThread.setRepeatFunction(function (refreshCount) {
+            that.repeat(refreshCount);
+        });
         this.preAnimation = undefined;
         this.nextAnimation = undefined;
-        let that = this;
-        this.loopFunction = function (evt) {
-            if (!that.startRun) return;
-            that.repeat();
-            that.refreshCount++;
-        }
         this[_loop] = 0;
-        this[_temploop] = undefined;
+        this[_temploop] = 0;
+        this._totalTime = totalTime;
         this.callbacks = callbacks;
-        this.refreshCount = 0;
     }
 
 
@@ -154,8 +154,7 @@ export default class Animation {
     }
 
     then(totalTime, type) {
-        this.nextAnimation = new Animation(this.figure, totalTime, type);
-        this.nextAnimation.loop = this.loop;
+        this.nextAnimation = new RAFAnimation(this.figure, totalTime, type);
         this.nextAnimation.preAnimation = this;
         return this.nextAnimation;
     }
@@ -231,20 +230,33 @@ export default class Animation {
         this.finalValues.length = 0;
         this.originalValues.length = 0;
         this.applyProperties.length = 0;
-        this[_loop] = this[_temploop];
+        this[_temploop] = this[_loop];
+        if (this.figure.getGraph().runningAnimation == this.id) {
+            this.figure.getGraph().runningAnimation = null;
+        }
     }
 
-    repeat() {
-        this.applyFigureChange(this.refreshCount);
-        if (this.reachFinalFrame(this.refreshCount)) {
+    repeat(refreshCount) {
+        this.applyFigureChange(refreshCount);
+        if (this.reachFinalFrame(refreshCount)) {
             this.applyFinalValue();
+            this.figure.update(this.id);
+            // 如果有回调接口，务必传给他的next动画，让next动画去完成回调
+            let tempCallback = undefined;
+            if (this.callbacks && this.nextAnimation) {
+                tempCallback = this.callbacks;
+                this.callbacks = undefined;
+            }
             this.complete();
             if (this.nextAnimation) {
+                this.nextAnimation.callbacks = tempCallback;
                 this.nextAnimation.launchImmediately();
                 return;
             }
+
             return;
         }
+        this.figure.update(this.id);
     }
 
     complete() {
@@ -257,22 +269,15 @@ export default class Animation {
 
     stop(type) {
         type = type || 'interrupt';
-        // 先让当前动画停下来
-        this.startRun = false;
-        this.refreshCount = 0;
-        if (this.loop > 0) this.loop--;
-        // 说明是无限循环的
-        let firstAnimation = this.preAnimation;
-        if (firstAnimation) {
-            while (firstAnimation.preAnimation != null) {
-                firstAnimation = firstAnimation.preAnimation;
-            }
-        } else {
-            firstAnimation = this;
+        this.loopThread.stop();
+        if (this.figure.getGraph().runningAnimation == this.id) {
+            this.figure.getGraph().runningAnimation = null;
         }
-        if (this.loop == 0) {
+        if (this[_temploop] != 0) {
+            this[_temploop]--;
+            this.start();
+        } else {
             this.cleanAnimationData();
-            this.figure.removeEventListener(Figure.EVENT_BEFORE_DRAW_SELF, this.loopFunction);
             if (this.callbacks) {
                 if (type == 'interrupt') {
                     if (this.callbacks.stop) {
@@ -284,30 +289,10 @@ export default class Animation {
                     }
                 }
             }
-        } else {
-            if (this.nextAnimation) {
-                // 这说明还有下一个动画，不能重复当前动画：
-                this.nextAnimation.launchImmediately();
-                return;
-            }
-            // 如果没有下一个动画而有前一个动画，说明是动画链,且目前是动画链最后一个
-            // 则找到动画链最开始的动画来一遍，在开始之前，要把动画链所有的初始状态恢复给figure
-            if (this.preAnimation) {
-                let runnedAnimation = this;
-                while (runnedAnimation != firstAnimation) {
-                    runnedAnimation.applyOriginalValue();
-                    runnedAnimation = runnedAnimation.preAnimation;
-                }
-                firstAnimation.launchImmediately();
-                return;
-            }
-            // 如果不是动画链，则重新来一次：
-            this.launchImmediately();
         }
     }
 
     start(callbacks) {
-        this.figure.addEventListener(Figure.EVENT_BEFORE_DRAW_SELF, this.loopFunction);
         if (callbacks)
             this.callbacks = callbacks;
         if (this.preAnimation) {
@@ -323,12 +308,10 @@ export default class Animation {
         let that = this;
         if (this.delay != null && this.delay != undefined) {
             setTimeout(function () {
-                that.refreshCount = 0;
-                that.startRun = true;
+                that.loopThread.start();
             }, this.delay);
         } else {
-            this.refreshCount = 0;
-            this.startRun = true;
+            this.loopThread.start();
         }
     }
 }

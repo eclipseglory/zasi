@@ -13,7 +13,7 @@
     import World from "../src/World.js";
     import TestRectSpirit from "../src/spirit/TestRectSpirit.js";
     import PhysicsModel from "../src/physics/PhysicsModel.js";
-
+    //1900 303
     createOneFullCanvas();
     let world = new World(webgl, {enableDepthTest: true, e: 1, showDebug: true});
     let rect = new TestRectSpirit({
@@ -27,6 +27,20 @@
         height: 50
     });
     rect.physicsModel = PhysicsModel.createDefaultModel(rect);
+
+    let rect1 = new TestRectSpirit({
+        velocity: {x: 2, y: -2},
+        rotate: 0,
+        angularVelocity: 0.01,
+        // force: {x: 0, y: 0.01},
+        x: 200,
+        y: 200,
+        width: 50,
+        height: 50,
+        color: 'yellow'
+    });
+    rect1.physicsModel = PhysicsModel.createDefaultModel(rect1);
+
 
     let border1 = new TestRectSpirit({
         x: -95,
@@ -65,6 +79,7 @@
     });
     border4.physicsModel = PhysicsModel.createDefaultModel(border4);
     world.addChild(rect);
+    world.addChild(rect1);
     world.addChild(border1);
     world.addChild(border2);
     world.addChild(border3);

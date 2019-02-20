@@ -17,12 +17,13 @@ function createCompareCanvas(){
         webglCanvas.height = h/2 - margin*2;
         webglCanvas.style.width = webglCanvas.width + "px";
         webglCanvas.style.height = webglCanvas.height + "px";
+        webglCanvas.style.margin = margin;
         document.body.append(webglCanvas);
     }
 }
 
 function createOneFullCanvas(){
-    let margin = 0;
+    let margin = 10;
     let body = document.body;
     body.style.margin = margin;
     body.style.padding = 0;

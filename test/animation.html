@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>动画</title>
+    <script src="test.js"></script>
+</head>
+<body>
+
+</body>
+<script type='module'>
+
+    import Graph from "../src/Graph.js";
+    import Rectangle from "../src/shape/Rectangle.js";
+    import Animation from "../src/Animation.js";
+
+    createOneFullCanvas();
+    let graph = new Graph(webgl, {enableDepthTest: true, e: 1, showDebug: true});
+
+    let rect = new Rectangle({
+        x: 100,
+        y: 100,
+        width: 100,
+        height: 100,
+        color: 'red'
+    });
+    graph.addChild(rect);
+    let animation = new Animation(rect, 4000);
+    //动画链
+    animation.moveTo(500, 500).then(1000).rotateTo(360).start({
+        complete: function () {
+            console.log('动画链完成');
+        }
+    });
+
+    let rect1 = new Rectangle({
+        x: 200,
+        y: 100,
+        width: 100,
+        height: 100,
+        color: 'yellow'
+    });
+    graph.addChild(rect1);
+    let animation1 = new Animation(rect1, 1000);
+    animation1.loop = -1;
+    animation1.moveTo(500, 500).then(1000).moveTo(200,100).start({
+        complete: function () {
+            console.log('这句话显示就说明错了');
+        }
+    });
+
+    let rect2 = new Rectangle({
+        x: 200,
+        y: 200,
+        width: 100,
+        height: 100,
+        color: 'blue'
+    });
+    graph.addChild(rect2);
+    let animation2 = new Animation(rect2, 2000);
+    animation2.loop = 2;
+    animation2.moveTo(500, 200).then(1000).scaleTo(2,2).start({
+        complete: function () {
+            console.log('有限循环动画链完成');
+        }
+    });
+
+    graph.startLoopRefresh();
+</script>
+</html>
