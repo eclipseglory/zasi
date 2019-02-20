@@ -2,6 +2,7 @@ import Dimension3 from "./common/Dimension3.js";
 import List from "./common/List.js";
 import Tools from "./utils/Tools.js";
 import "../libs/tielifa.min.js";
+import FigureEvent from "./FigureEvent.js";
 
 let _id = Symbol('figure对象的唯一标示');
 let _bounds = Symbol('figure左上角坐标点以及大小的一个数组,0位是x,1位是y,2位是z,3位是width,4位是height');
@@ -22,6 +23,12 @@ let _transformMatrix = Symbol('figure自身的变换4x4矩阵');
 let _center = Symbol('figure的中心位置');
 let GLOBAL_ID = 0;
 
+const EVENT_ADD_CHILD = 'add_child';
+const EVENT_REMOVE_CHILD = 'remove_child';
+const EVENT_BEFORE_DRAW_SELF = 'before_draw_self';
+const EVENT_AFTER_DRAW_SELF = 'after_draw_self';
+
+const FIGURE_EVENT = {name: null, figure: null, property: null};
 export default class Figure {
 
     constructor(properties) {
@@ -64,6 +71,22 @@ export default class Figure {
         this._tempP2 = new Float32Array(4);
         this._tempP3 = new Float32Array(4);
         this._tempP4 = new Float32Array(4);
+    }
+
+    static get EVENT_ADD_CHILD() {
+        return EVENT_ADD_CHILD
+    }
+
+    static get EVENT_REMOVE_CHILD() {
+        return EVENT_REMOVE_CHILD
+    }
+
+    static get EVENT_AFTER_DRAW_SELF() {
+        return EVENT_AFTER_DRAW_SELF
+    }
+
+    static get EVENT_BEFORE_DRAW_SELF() {
+        return EVENT_BEFORE_DRAW_SELF
     }
 
     get center() {
@@ -129,10 +152,28 @@ export default class Figure {
         this.fireContentChange(true);
     }
 
-    update(requestId) {
-        if (this.parent != null) {
-            this.parent.update(this.Id);
-        }
+    update(ctx) {
+        ctx.save();
+        this.beforeDraw(ctx);
+        this.applyTransform(ctx);
+        this.applyDrawingStyle(ctx);
+        this.drawSelf(ctx);
+        this.afterDraw(ctx)
+        this.updateChildren(ctx);
+        ctx.restore();
+
+    }
+
+    beforeDraw(ctx) {
+        FIGURE_EVENT.name = EVENT_BEFORE_DRAW_SELF;
+        FIGURE_EVENT.figure = this;
+        this.fireEvent(EVENT_BEFORE_DRAW_SELF, FIGURE_EVENT);
+    }
+
+    afterDraw(ctx) {
+        FIGURE_EVENT.name = EVENT_AFTER_DRAW_SELF;
+        FIGURE_EVENT.figure = this;
+        this.fireEvent(EVENT_BEFORE_DRAW_SELF, FIGURE_EVENT);
     }
 
 
@@ -341,16 +382,6 @@ export default class Figure {
     drawSelf(ctx) {
     }
 
-    draw(ctx) {
-        ctx.save();
-        this.applyTransform(ctx);
-        this.applyDrawingStyle(ctx);
-        this.drawSelf(ctx);
-        this.drawChildren(ctx);
-        ctx.restore();
-    }
-
-
     applyTransform(ctx) {
         let matrix = this.getTransformMatrix();
         ctx.applyTransformMatrix(matrix);
@@ -382,7 +413,7 @@ export default class Figure {
         ctx.globalAlpha = this.opacity;
     }
 
-    drawChildren(ctx) {
+    updateChildren(ctx) {
         for (let i = 0; i < this.children.length; i++) {
             let child = this.children.get(i);
             if (!child.visible) continue;
@@ -390,7 +421,7 @@ export default class Figure {
                 if (this.isOutside(child)) {
                     continue;
                 }
-            child.draw(ctx);
+            child.update(ctx);
         }
     }
 
@@ -463,6 +494,14 @@ export default class Figure {
         }
         this[_children].insert(child, index);
         child.parent = this;
+        FIGURE_EVENT.name = EVENT_ADD_CHILD;
+        FIGURE_EVENT.figure = this;
+        FIGURE_EVENT.property = {
+            oldparent: parent,
+            currentparent: this,
+            child: child
+        };
+        this.fireEvent(EVENT_ADD_CHILD, FIGURE_EVENT);
         return child;
     }
 
@@ -475,6 +514,14 @@ export default class Figure {
         }
         this[_children].add(child);
         child.parent = this;
+        FIGURE_EVENT.name = EVENT_ADD_CHILD;
+        FIGURE_EVENT.figure = this;
+        FIGURE_EVENT.property = {
+            oldparent: parent,
+            currentparent: this,
+            child: child
+        };
+        this.fireEvent(EVENT_ADD_CHILD, FIGURE_EVENT);
         return child;
     }
 
@@ -619,10 +666,10 @@ export default class Figure {
         return this.relativeBounds;
     }
 
-    get absoluteRotate(){
+    get absoluteRotate() {
         let rotate = this.rotate;
         let parent = this.parent;
-        while(parent != null){
+        while (parent != null) {
             rotate += parent.rotate;
             parent = parent.parent;
         }
@@ -658,6 +705,14 @@ export default class Figure {
         if (child == null) return;
         this[_children].remove(child);
         child.parent = null;
+        FIGURE_EVENT.name = EVENT_REMOVE_CHILD;
+        FIGURE_EVENT.figure = this;
+        FIGURE_EVENT.property = {
+            oldparent: this,
+            currentparent: null,
+            child: child
+        };
+        this.fireEvent(EVENT_REMOVE_CHILD, FIGURE_EVENT);
         return child;
     }
 }

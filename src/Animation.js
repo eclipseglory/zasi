@@ -1,4 +1,5 @@
 import LoopThreadWrapper from "./LoopThreadWrapper.js";
+import Figure from "./Figure.js";
 
 let _delay = Symbol("动画延迟开始的时间值");
 let _loop = Symbol("动画循环次数");
@@ -61,22 +62,25 @@ export default class Animation {
         this.id = new Date().getTime().toString() + Math.floor(Math.random() * 100);
         if (!figure) throw Error('动画主体figure不能为空');
         this.figure = figure;
+
         this.type = type || LINEAR;
         this[_totalTime] = totalTime || 500;
         this.finalValues = [];
         this.originalValues = [];
         this.applyProperties = [];
         var that = this;
-        this.loopThread = new LoopThreadWrapper();
-        this.loopThread.setRepeatFunction(function (refreshCount) {
-            that.repeat(refreshCount);
+        this.figure.addEventListener(Figure.EVENT_BEFORE_DRAW_SELF, function (evt) {
+            that.repeat();
+            that.refreshCount++;
         });
+        this.startRun = false;
         this.preAnimation = undefined;
         this.nextAnimation = undefined;
         this[_loop] = 0;
         this[_temploop] = 0;
         this._totalTime = totalTime;
         this.callbacks = callbacks;
+        this.refreshCount = 0;
     }
 
 
@@ -150,7 +154,7 @@ export default class Animation {
     }
 
     then(totalTime, type) {
-        this.nextAnimation = new Animation(this.figure, totalTime, type);
+        this.nextAnimation = new RAFAnimation(this.figure, totalTime, type);
         this.nextAnimation.preAnimation = this;
         return this.nextAnimation;
     }
@@ -232,11 +236,10 @@ export default class Animation {
         }
     }
 
-    repeat(refreshCount) {
-        this.applyFigureChange(refreshCount);
-        if (this.reachFinalFrame(refreshCount)) {
+    repeat() {
+        this.applyFigureChange(this.refreshCount);
+        if (this.reachFinalFrame(this.refreshCount)) {
             this.applyFinalValue();
-            this.figure.update(this.id);
             // 如果有回调接口，务必传给他的next动画，让next动画去完成回调
             let tempCallback = undefined;
             if (this.callbacks && this.nextAnimation) {
@@ -249,10 +252,8 @@ export default class Animation {
                 this.nextAnimation.launchImmediately();
                 return;
             }
-
             return;
         }
-        this.figure.update(this.id);
     }
 
     complete() {
@@ -265,10 +266,6 @@ export default class Animation {
 
     stop(type) {
         type = type || 'interrupt';
-        this.loopThread.stop();
-        if (this.figure.getGraph().runningAnimation == this.id) {
-            this.figure.getGraph().runningAnimation = null;
-        }
         if (this[_temploop] != 0) {
             this[_temploop]--;
             this.start();
@@ -304,10 +301,12 @@ export default class Animation {
         let that = this;
         if (this.delay != null && this.delay != undefined) {
             setTimeout(function () {
-                that.loopThread.start();
+                that.refreshCount = 0;
+                that.startRun = true;
             }, this.delay);
         } else {
-            this.loopThread.start();
+            this.refreshCount = 0;
+            this.startRun = true;
         }
     }
 }

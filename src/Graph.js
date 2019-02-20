@@ -1,5 +1,6 @@
 import Figure from "./Figure.js";
 import '../libs/tielifa.min.js';
+import LoopThreadWrapper from "./LoopThreadWrapper.js";
 
 export default class Graph extends Figure {
     constructor(canvas, p) {
@@ -11,36 +12,25 @@ export default class Graph extends Figure {
         this.height = canvas.height;
         this.ctx = new tielifa.WebGL2D(canvas, p);
         this.canvas = canvas;
-        this.requestId = null;
+        this.loopInterface = null;
+        this._loop = new LoopThreadWrapper();
+        let that = this;
+        this._loop.repeat = function (refreshCount) {
+            that.loopRefresh(refreshCount);
+        };
+    }
+
+    update() {
+        this.clean();
+        super.update(this.ctx);
+        this.ctx.draw();
     }
 
     get parent() {
         return null;
     }
 
-    set parent(parent){}
-
-    update(requestId) {
-
-        if (requestId != null) {
-            if (this.requestId == null) {
-                this.requestId = requestId;
-            }
-        }
-        if (this.requestId != requestId && this.requestId != null) {
-            // 这说明有一个动画正在运行中
-            // console.log(this.runningAnimation);
-            return;
-        }
-        this.clean();
-        this.draw(this.ctx);
-        this.ctx.draw();
-    }
-
-    releaseUpdateRequest(id) {
-        if (this.requestId == id) {
-            this.requestId = null;
-        }
+    set parent(parent) {
     }
 
     clean() {
@@ -48,5 +38,28 @@ export default class Graph extends Figure {
     }
 
     drawSelf(ctx) {
+    }
+
+    loopRefresh() {
+        if (this.loopInterface) {
+            if (this.loopInterface.loopStart) {
+                this.loopInterface.loopStart();
+            }
+        }
+        this.update()
+        if (this.loopInterface) {
+            if (this.loopInterface.loopEnd) {
+                this.loopInterface.loopEnd();
+            }
+        }
+    }
+
+    startLoopRefresh(loopinterface) {
+        this.loopInterface = loopinterface;
+        this._loop.start();
+    }
+
+    stopLoopRefresh() {
+        this._loop.stop();
     }
 }

@@ -2,9 +2,8 @@ import Tools from "../utils/Tools.js";
 import Figure from "../Figure.js";
 import List from "../common/List.js";
 import Point2D from "../common/Point2D.js";
-import LoopThreadWrapper from "../LoopThreadWrapper.js";
 import '../../libs/tielifa.min.js';
-import World from "../World.js";
+import FigureEvent from "../FigureEvent.js";
 
 let _velocity = Symbol('速度');
 let _angularVelocity = Symbol('角速度');
@@ -24,10 +23,14 @@ let _prePosition = Symbol('前一时间的位置');
 let _preRotation = Symbol('前一时刻的旋转度数');
 let _physicsModel = Symbol('figure的物理模型');
 let _contactable = Symbol('是否可碰撞，true则会进行碰撞测试，反之不会');
+let _move = Symbol('是否运动，如果为false则不会根据其速度重新计算位置');
 
 const DELTA_TIME = 1;//1000 / 60;
 const RADIAN_TO_ANGEL_CONST = 180 / Math.PI;
 const ANGEL_TO_RADIAN_CONST = Math.PI / 180;
+const BEFORE_CALCULATEPOSE_EVENT = 'beforeCalculatePose';
+const AFTER_CALCULATEPOSE_EVENT = 'afterCalculatePose';
+const CEVENT = {name:null,figure:null};
 export default class AbstractSpirit extends Figure {
     constructor(p) {
         p = p || {};
@@ -44,15 +47,9 @@ export default class AbstractSpirit extends Figure {
         this[_sleepx] = false;
         this[_sleepy] = false;
         this[_inertia] = undefined;
+        this[_move] = false;
         // 质心位置默认是在中心
         this[_massCenter] = p['massCenter'];
-        this.thread = new LoopThreadWrapper();
-        let that = this;
-        this.thread.repeat = function (refreshCount) {
-            that.repeat(refreshCount);
-        };
-        this.beforeRepeat = new List();
-        this.afterRepeat = new List();
     }
 
     get contactable() {
@@ -65,23 +62,6 @@ export default class AbstractSpirit extends Figure {
 
     get physicsModel() {
         return this[_physicsModel];
-    }
-
-
-    addAfterRepeatListener(listener) {
-        this.afterRepeat.add(listener);
-    }
-
-    addBeforeRepeatListener(listener) {
-        this.beforeRepeat.add(listener);
-    }
-
-    removeAfterRepeatListener(listener) {
-        this.afterRepeat.remove(listener);
-    }
-
-    removeBeforeRepeatListener(listener) {
-        this.beforeRepeat.remove(listener);
     }
 
     static get DELTA_TIME() {
@@ -124,13 +104,13 @@ export default class AbstractSpirit extends Figure {
 
     get momentInertia() {
         if (this.mass == Infinity) return Infinity;
-        if(this[_physicsModel] == null){
+        if (this[_physicsModel] == null) {
             if (this[_inertia] == undefined) {
                 // 默认的转动惯量是绕中心转的2d矩形的转动惯量： I = m*(w^2 + h^2)/12;
                 this[_inertia] = this[_mass] * (this.width * this.width + this.height * this.height) / 12;
             }
             return this[_inertia];
-        }else{
+        } else {
             return this[_physicsModel].momentInertia;
         }
     }
@@ -250,12 +230,18 @@ export default class AbstractSpirit extends Figure {
         this.angularVelocity = this.preAngularVelocity;
     }
 
-    repeat(refreshCount) {
-        if (this.beforeRepeat) {
-            for (let i = 0; i < this.beforeRepeat.length; i++) {
-                this.beforeRepeat.get(i)({figure: this, refreshCount: refreshCount});
-            }
+    beforeDraw(ctx) {
+        super.beforeDraw(ctx);
+        if (this[_move]) {
+            this.calculateCurrentPose();
         }
+    }
+
+
+    calculateCurrentPose() {
+        CEVENT.figure = this;
+        CEVENT.name = BEFORE_CALCULATEPOSE_EVENT
+        this.fireEvent(BEFORE_CALCULATEPOSE_EVENT, CEVENT);
         let acceleration = this.acceleration;
         let angularAcceleration = this.angularAcceleration;
         // 线性速度计算：
@@ -306,12 +292,8 @@ export default class AbstractSpirit extends Figure {
             this.fireEvent('sleepY', {source: this});
             this[_sleepy] = true;
         }
-
-        if (this.afterRepeat) {
-            for (let i = 0; i < this.afterRepeat.length; i++) {
-                this.afterRepeat.get(i)({figure: this, refreshCount: refreshCount});
-            }
-        }
+        CEVENT.name = AFTER_CALCULATEPOSE_EVENT
+        this.fireEvent(AFTER_CALCULATEPOSE_EVENT, CEVENT);
     }
 
     set physicsModel(model) {
@@ -326,23 +308,26 @@ export default class AbstractSpirit extends Figure {
         this[_sleepx] = false;
         this[_sleepy] = false;
         this[_sleepRotate] = false;
+        this[_move] = true;
         let world = this.getGraph();
-        if (world instanceof World) {
-            this.addAfterRepeatListener(world.monitorSpiritAfterMove);
-            this.addBeforeRepeatListener(world.monitorSpiritBeforeMove);
+        if (world != undefined) {
+            this.addEventListener(BEFORE_CALCULATEPOSE_EVENT, world.monitorSpiritBeforeMove);
+            this.addEventListener(AFTER_CALCULATEPOSE_EVENT, world.monitorSpiritAfterMove);
         }
-        this.thread.start();
     }
 
-    endMove() {
+    stopMove() {
         this[_sleepx] = true;
         this[_sleepy] = true;
         this[_sleepRotate] = true;
+        this[_move] = false;
+        this[_velocity].x = this[_velocity].y = 0;
+        this[_angularVelocity] = 0;
+        this[_force].x = this[_force].y = 0;
         let world = this.getGraph();
-        if (world instanceof World) {
-            this.removeAfterRepeatListener(world.monitorSpiritAfterMove);
-            this.removeBeforeRepeatListener(world.monitorSpiritBeforeMove);
+        if (world != undefined) {
+            this.removeEventListener(BEFORE_CALCULATEPOSE_EVENT, world.monitorSpiritBeforeMove);
+            this.removeEventListener(AFTER_CALCULATEPOSE_EVENT, world.monitorSpiritAfterMove);
         }
-        this.thread.stop();
     }
 }

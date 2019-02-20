@@ -9,15 +9,16 @@
 
 </body>
 <script type='module'>
+
     import World from "../src/World.js";
     import TestRectSpirit from "../src/spirit/TestRectSpirit.js";
     import PhysicsModel from "../src/physics/PhysicsModel.js";
 
     createOneFullCanvas();
-    let world = new World(webgl, {enableDepthTest: true, e: 1,showDebug:true});
+    let world = new World(webgl, {enableDepthTest: true, e: 1, showDebug: true});
     let rect = new TestRectSpirit({
         velocity: {x: 1, y: 0},
-        rotate:30,
+        rotate: 30,
         angularVelocity: 0.01,
         // force: {x: 0, y: 0.01},
         x: 100,
@@ -69,7 +70,5 @@
     world.addChild(border3);
     world.addChild(border4);
     world.startWorld();
-
-
 </script>
 </html>

@@ -1,9 +1,8 @@
 import Graph from "./Graph.js";
-import LoopThreadWrapper from "./LoopThreadWrapper.js";
 import AbstractSpirit from "./spirit/AbstractSpirit.js";
 import UniformGrid from "./utils/UniformGrid.js";
 import Tools from "./utils/Tools.js";
-import SAT from "./common/SAT.js";
+import SAT from "./geometry/SAT.js";
 import RigidPhysics from "./physics/RigidPhysics.js";
 
 export default class World extends Graph {
@@ -12,21 +11,9 @@ export default class World extends Graph {
         let gridRow = p['gridRow'] || 10;
         let gridColumn = p['gridColumn'] || 10;
         super(canvas);
-        this._loop = new LoopThreadWrapper();
-        let that = this;
-        this._loop.repeat = function (refreshCount) {
-            that.repeat(refreshCount);
-        };
-        this.p1 = undefined;
-        this.p2 = undefined;
         this.collisionE = p['e'] || 1;
         this.uniformGrid = new UniformGrid(gridRow, gridColumn, this.width, this.height);
         this.showDebug = p['showDebug'] || false;
-    }
-
-    repeat(refreshCount) {
-        // this.contactTest();
-        this.update(this.id);
     }
 
     contactTest() {
@@ -45,7 +32,6 @@ export default class World extends Graph {
 
     monitorSpiritBeforeMove(evt) {
         let figure = evt.figure;
-        figure.getGraph().fireEvent('beforeRepeat', evt);
     }
 
     monitorSpiritAfterMove(evt) {
@@ -85,7 +71,7 @@ export default class World extends Graph {
                             let result = SAT.collisionTest(modelA, modelB);
                             if (result.collision) {
                                 RigidPhysics.solveCollision(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
-                                    , result.contactPoints, result.contactPlane, result.MTV.direction, 1, result.MTV.minOverlap.value);
+                                    , result.contactPoints, result.contactPlane, result.MTV.direction, this.collisionE, result.MTV.minOverlap.value);
                             }
                         }
                     }
@@ -95,7 +81,6 @@ export default class World extends Graph {
 
             testedPairs.length = 0;
         }
-        world.fireEvent('afterRepeat', evt);
 
         function isTested(figure1, figure2) {
             for (let i = 0; i < testedPairs.length; i++) {
@@ -124,57 +109,13 @@ export default class World extends Graph {
                     child.startMove();
             }
         }
-        this._loop.start();
+        this.startLoopRefresh();
     }
 
-    draw(ctx) {
-        super.draw(ctx);
+    update(ctx) {
+        super.update(ctx);
         if (this.showDebug)
             this._debug_drawPhysicsModel();
-        // ctx.save();
-        // drawPoint(ctx, this.p1, "green");
-        // drawPoint(ctx, this.p2, "red");
-        // drawPoint(ctx, this.p3, "blue");
-        // drawPoint(ctx, this.p4, "yellow");
-        // linePoints(ctx, this.p1, this.p2, 'yellow');
-        // ctx.restore();
-        //
-        // // linePoints(ctx,this.p3,this.p4,'yellow');
-        //
-        // function linePoints(ctx, point1, point2, color) {
-        //     if (point1 == undefined || point2 == undefined) return;
-        //     ctx.save();
-        //     ctx.globalAlpha = 0.5;
-        //     ctx.beginPath();
-        //     ctx.moveTo(point1.x, point1.y);
-        //     ctx.lineTo(point2.x, point2.y);
-        //     ctx.closePath();
-        //
-        //     ctx.strokeStyle = color;
-        //     ctx.stroke();
-        // }
-        //
-        // function drawPoint(ctx, point, color) {
-        //     if (point == undefined) return;
-        //     ctx.save();
-        //     ctx.globalAlpha = 0.5;
-        //     ctx.fillStyle = color;
-        //     ctx.beginPath();
-        //     ctx.arc(point.x, point.y, 5, 0, Tools.PI2);
-        //     ctx.closePath();
-        //     ctx.fill();
-        //     ctx.restore();
-        // }
-        //
-        // // for (let i = 0; i < this.childrenSize; i++) {
-        // //     let child = this.getChild(i);
-        // //     let bounds = child.getSelectBounds();
-        // //     ctx.beginPath();
-        // //     ctx.rect(bounds.left - 1, bounds.top - 1, bounds.width + 2, bounds.height + 2);
-        // //     ctx.closePath();
-        // //     ctx.strokeStyle = 'green';
-        // //     ctx.stroke();
-        // // }
     }
 
     _debug_drawPhysicsModel() {
