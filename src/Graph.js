@@ -23,7 +23,15 @@ export default class Graph extends Figure {
         this[_paused] = false;
     }
 
-    get paused(){
+    loadImage(id, src, callbacks, properties) {
+        this.ctx.loadImage(id, src, callbacks, properties);
+    }
+
+    getTexture(id, index) {
+        return this.ctx.getTexture(id, index);
+    }
+
+    get paused() {
         return this[_paused];
     }
 

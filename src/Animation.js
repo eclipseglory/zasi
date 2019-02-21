@@ -251,7 +251,7 @@ export default class Animation {
         this.finalValues.length = 0;
         this.originalValues.length = 0;
         this.applyProperties.length = 0;
-        this[_loop] = this[_temploop];
+        this[_loop] = 0;
     }
 
     repeat() {
@@ -278,13 +278,13 @@ export default class Animation {
         if (type === INTERRUPT) {
             //如果被打断，恢复figure之前的所有数据
             let runnedAnimation = this;
-            while (runnedAnimation !== null) {
+            while (runnedAnimation) {
                 runnedAnimation.applyOriginalValue();
                 this.figure.removeEventListener(Figure.EVENT_BEFORE_DRAW_SELF, runnedAnimation.loopFunction);
                 runnedAnimation = runnedAnimation.preAnimation;
             }
             let unRunnedAnimation = this.nextAnimation;
-            while (unRunnedAnimation !== null) {
+            while (unRunnedAnimation) {
                 this.figure.removeEventListener(Figure.EVENT_BEFORE_DRAW_SELF, unRunnedAnimation.loopFunction);
                 unRunnedAnimation = unRunnedAnimation.nextAnimation;
             }

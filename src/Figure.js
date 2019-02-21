@@ -459,7 +459,8 @@ export default class Figure {
     fireEvent(name, evt) {
         if (this[_methods][name] != null) {
             for (let index = 0; index < this[_methods][name].length; index++) {
-                this[_methods][name][index](evt);
+                let m = this[_methods][name][index];
+                if (m) m(evt);
             }
         }
     }

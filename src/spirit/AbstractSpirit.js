@@ -48,10 +48,19 @@ export default class AbstractSpirit extends Figure {
         this[_sleepx] = false;
         this[_sleepy] = false;
         this[_inertia] = undefined;
+        this.filter = p['filter'] || tielifa.WebGL2D.Normal_Filter;
         this[_move] = false;
         // 质心位置默认是在中心
         this[_massCenter] = p['massCenter'];
         this[_paused] = false;
+    }
+
+    static get EVENT_BEFORE_CALCULATE_POSE() {
+        return BEFORE_CALCULATEPOSE_EVENT;
+    }
+
+    static get AFTER_BEFORE_CALCULATE_POSE() {
+        return AFTER_CALCULATEPOSE_EVENT;
     }
 
     get contactable() {
@@ -223,6 +232,11 @@ export default class AbstractSpirit extends Figure {
         return tx - ty;
     }
 
+    applyDrawingStyle(ctx) {
+        super.applyDrawingStyle(ctx);
+        ctx.filterType = this.filter;
+    }
+
     backToPre() {
         this.left = this.prePosition.x;
         this.top = this.prePosition.y;
@@ -318,8 +332,10 @@ export default class AbstractSpirit extends Figure {
         this[_paused] = false;
         let world = this.getGraph();
         if (world != undefined) {
-            this.addEventListener(BEFORE_CALCULATEPOSE_EVENT, world.monitorSpiritBeforeMove);
-            this.addEventListener(AFTER_CALCULATEPOSE_EVENT, world.monitorSpiritAfterMove);
+            if (world.monitorSpiritBeforeMove)
+                this.addEventListener(BEFORE_CALCULATEPOSE_EVENT, world.monitorSpiritBeforeMove);
+            if (world.monitorSpiritAfterMove)
+                this.addEventListener(AFTER_CALCULATEPOSE_EVENT, world.monitorSpiritAfterMove);
         }
     }
 
@@ -342,8 +358,10 @@ export default class AbstractSpirit extends Figure {
         this[_paused] = false;
         let world = this.getGraph();
         if (world != undefined) {
-            this.removeEventListener(BEFORE_CALCULATEPOSE_EVENT, world.monitorSpiritBeforeMove);
-            this.removeEventListener(AFTER_CALCULATEPOSE_EVENT, world.monitorSpiritAfterMove);
+            if (world.monitorSpiritBeforeMove)
+                this.removeEventListener(BEFORE_CALCULATEPOSE_EVENT, world.monitorSpiritBeforeMove);
+            if (world.monitorSpiritAfterMove)
+                this.removeEventListener(AFTER_CALCULATEPOSE_EVENT, world.monitorSpiritAfterMove);
         }
     }
 }
