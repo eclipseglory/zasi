@@ -2,6 +2,22 @@ import AbstractSpirit from "./AbstractSpirit.js";
 import Animation from "../Animation.js";
 
 export default class Spirit extends AbstractSpirit {
+    get texture() {
+        return this.defaultTexture;
+    }
+
+    set texture(value) {
+        this.defaultTexture = value;
+    }
+
+    get textureIndex() {
+        return this._defaultTextureIndex;
+    }
+
+    set textureIndex(index) {
+        this._defaultTextureIndex = index;
+    }
+
     constructor(properties) {
         super(properties);
         if (properties == null) properties = {};
@@ -10,11 +26,17 @@ export default class Spirit extends AbstractSpirit {
         this.targetWidth = properties['targetWidth'] || 0;
         this.targetHeight = properties['targetHeight'] || 0;
         if (properties['texture']) {
-            this.texture = properties['texture'];
+            this._texture = properties['texture'];
+            this.defaultTexture = properties['texture'];
         }
-        this.textureIndex = -1;
+        this._textureIndex = -1;
+        this._defaultTextureIndex = -1;
         this.sheetAnimationMap = {};
         this.currentAnimation = {key: null, animation: new Animation(this)};
+        if (properties['textureIndex'] != undefined) {
+            this._textureIndex = properties['textureIndex'];
+            this._defaultTextureIndex = properties['textureIndex'];
+        }
     }
 
     addSheetAnimation(properties) {
@@ -24,11 +46,13 @@ export default class Spirit extends AbstractSpirit {
             let end = properties['end'];
             let time = properties['time'] || 500;
             let loop = properties['loop'] || false;
+            let texture = properties['_texture'];
             this.sheetAnimationMap[key] = {
                 start: start,
                 end: end + 0.9,
                 time: time,
-                loop: loop
+                loop: loop,
+                texture: texture
             }
         }
     }
@@ -72,9 +96,26 @@ export default class Spirit extends AbstractSpirit {
             if (animationInfo.loop) {
                 animation.loop = -1;
             }
-            this.textureIndex = animationInfo.start;
-            animation.propertyChangeTo(animationInfo.end, 'textureIndex');
-            animation.start(callbacks);
+            this._textureIndex = animationInfo.start;
+            if (animation.texture != undefined)
+                this._texture = animation.texture;
+            animation.propertyChangeTo(animationInfo.end, '_textureIndex');
+            let that = this;
+            animation.start({
+                complete: function () {
+                    that._texture = that.defaultTexture;
+                    that._textureIndex = that._defaultTextureIndex;
+                    if (callbacks && callbacks.complete) {
+                        callbacks.complete();
+                    }
+                }, stop: function () {
+                    that._texture = that.defaultTexture;
+                    that._textureIndex = that._defaultTextureIndex;
+                    if (callbacks && callbacks.stop) {
+                        callbacks.stop();
+                    }
+                }
+            });
         }
     }
 
@@ -91,10 +132,13 @@ export default class Spirit extends AbstractSpirit {
     }
 
     drawSelf(ctx) {
-        if (this.texture == undefined) return;
-        let texture = this.texture;
-        if (this.textureIndex != -1) {
-            texture = this.texture.splitedTextures[Math.floor(this.textureIndex)];
+        if (this._texture == undefined) {
+            this._texture = this.defaultTexture;
+        }
+        if (this._texture == undefined) return;
+        let texture = this._texture;
+        if (this._textureIndex != -1) {
+            texture = this._texture.splitedTextures[Math.floor(this._textureIndex)];
         }
         if (texture == undefined) return;
         if (this.targetWidth == 0 || this.targetHeight == 0) {

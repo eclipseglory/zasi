@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>无重力有摩擦完全弹性刚体碰撞</title>
     <script src="test.js"></script>
+    <script src="./weixin/js/libs/zasi.min.js"></script>
+    <script src="./weixin/js/libs/tielifa.min.js"></script>
 </head>
 <body>
 
@@ -13,76 +15,80 @@
     import World from "../src/World.js";
     import TestRectSpirit from "../src/spirit/TestRectSpirit.js";
     import PhysicsModel from "../src/physics/PhysicsModel.js";
+    import Collision from "./weixin/js/Collision.js";
+
     createOneFullCanvas('no-gravity rigid body collision');
-    let world = new World(webgl, {enableDepthTest: true, e: 1, showDebug: true});
-    let rect = new TestRectSpirit({
-        velocity: {x: 1, y: 0},
-        rotate: 30,
-        angularVelocity: 0.01,
-        // force: {x: 0, y: 0.01},
-        x: 100,
-        y: 100,
-        width: 50,
-        height: 50
-    });
-    rect.physicsModel = PhysicsModel.createDefaultModel(rect);
-
-    let rect1 = new TestRectSpirit({
-        velocity: {x: 2, y: -2},
-        rotate: 0,
-        angularVelocity: 0.01,
-        // force: {x: 0, y: 0.01},
-        x: 200,
-        y: 200,
-        width: 50,
-        height: 50,
-        color: 'yellow'
-    });
-    rect1.physicsModel = PhysicsModel.createDefaultModel(rect1);
-
-
-    let border1 = new TestRectSpirit({
-        x: -95,
-        y: 1,
-        width: 100,
-        height: world.height,
-        color: 'red',
-        mass: Infinity
-    });
-    border1.physicsModel = PhysicsModel.createDefaultModel(border1);
-    let border2 = new TestRectSpirit({
-        x: 0,
-        y: -95,
-        width: world.width,
-        height: 100,
-        color: 'red',
-        mass: Infinity
-    });
-    border2.physicsModel = PhysicsModel.createDefaultModel(border2);
-    let border3 = new TestRectSpirit({
-        x: world.width - 5,
-        y: 5,
-        width: 100,
-        height: world.height - 10,
-        color: 'red',
-        mass: Infinity
-    });
-    border3.physicsModel = PhysicsModel.createDefaultModel(border3);
-    let border4 = new TestRectSpirit({
-        x: 5,
-        y: world.height - 5,
-        width: world.width - 10,
-        height: 500,
-        color: 'red',
-        mass: Infinity
-    });
-    border4.physicsModel = PhysicsModel.createDefaultModel(border4);
-    world.addChild(rect);
-    world.addChild(rect1);
-    world.addChild(border1);
-    world.addChild(border2);
-    world.addChild(border3);
-    world.addChild(border4);
-    world.startWorld();
+    let test = new Collision(webgl);
+    test.run('weixin/');
+    // let world = new World(webgl, {enableDepthTest: true, e: 1, showDebug: true});
+    // let rect = new TestRectSpirit({
+    //     velocity: {x: 1, y: 0},
+    //     rotate: 30,
+    //     angularVelocity: 0.01,
+    //     // force: {x: 0, y: 0.01},
+    //     x: 100,
+    //     y: 100,
+    //     width: 50,
+    //     height: 50
+    // });
+    // rect.physicsModel = PhysicsModel.createDefaultModel(rect);
+    //
+    // let rect1 = new TestRectSpirit({
+    //     velocity: {x: 2, y: -2},
+    //     rotate: 0,
+    //     angularVelocity: 0.01,
+    //     // force: {x: 0, y: 0.01},
+    //     x: 200,
+    //     y: 200,
+    //     width: 50,
+    //     height: 50,
+    //     color: 'yellow'
+    // });
+    // rect1.physicsModel = PhysicsModel.createDefaultModel(rect1);
+    //
+    //
+    // let border1 = new TestRectSpirit({
+    //     x: -95,
+    //     y: 1,
+    //     width: 100,
+    //     height: world.height,
+    //     color: 'red',
+    //     mass: Infinity
+    // });
+    // border1.physicsModel = PhysicsModel.createDefaultModel(border1);
+    // let border2 = new TestRectSpirit({
+    //     x: 0,
+    //     y: -95,
+    //     width: world.width,
+    //     height: 100,
+    //     color: 'red',
+    //     mass: Infinity
+    // });
+    // border2.physicsModel = PhysicsModel.createDefaultModel(border2);
+    // let border3 = new TestRectSpirit({
+    //     x: world.width - 5,
+    //     y: 5,
+    //     width: 100,
+    //     height: world.height - 10,
+    //     color: 'red',
+    //     mass: Infinity
+    // });
+    // border3.physicsModel = PhysicsModel.createDefaultModel(border3);
+    // let border4 = new TestRectSpirit({
+    //     x: 5,
+    //     y: world.height - 5,
+    //     width: world.width - 10,
+    //     height: 500,
+    //     color: 'red',
+    //     mass: Infinity
+    // });
+    // border4.physicsModel = PhysicsModel.createDefaultModel(border4);
+    // world.addChild(rect);
+    // world.addChild(rect1);
+    // world.addChild(border1);
+    // world.addChild(border2);
+    // world.addChild(border3);
+    // world.addChild(border4);
+    // world.startWorld();
 </script>
 </html>

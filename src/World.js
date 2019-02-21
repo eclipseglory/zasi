@@ -71,7 +71,7 @@ export default class World extends Graph {
                             let result = SAT.collisionTest(modelA, modelB);
                             if (result.collision) {
                                 RigidPhysics.solveCollision(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
-                                    , result.contactPoints, result.contactPlane, result.MTV.direction, this.collisionE, result.MTV.minOverlap.value);
+                                    , result.contactPoints, result.contactPlane, result.MTV.direction, world.collisionE, result.MTV.minOverlap.value);
                             }
                         }
                     }

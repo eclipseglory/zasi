@@ -25,11 +25,11 @@ export default class PhysicsModel {
         this.inertia;
     }
 
-    get mass(){
+    get mass() {
         return this._mass;
     }
 
-    set mass(m){
+    set mass(m) {
         this._mass = m;
     }
 
@@ -60,11 +60,34 @@ export default class PhysicsModel {
         vertices.push({x: figure.width, y: 0});
         vertices.push({x: figure.width, y: figure.height});
         vertices.push({x: 0, y: figure.height});
-        m.generateModel(vertices,figure.center,figure.mass);
+        m.generateModel(vertices, figure.center, figure.mass);
         return m;
     }
 
-    generateModel(shapeInfor, center,mass) {
+    static createRegularTriangleModel(figure) {
+        let m = new PhysicsModel({type: 0});
+        let vertices = [];
+        vertices.push({x: figure.width / 2, y: 0});
+        vertices.push({x: 0, y: figure.height});
+        vertices.push({x: figure.width, y: figure.height});
+        m.generateModel(vertices, figure.center, figure.mass);
+        return m;
+    }
+
+    static createRegularHexagonModel(figure) {
+        let m = new PhysicsModel({type: 0});
+        let vertices = [];
+        vertices.push({x: figure.width / 3, y: 0});
+        vertices.push({x: figure.width / 3 * 2, y: 0});
+        vertices.push({x: figure.width, y: figure.height / 2});
+        vertices.push({x: figure.width / 3 * 2, y: figure.height});
+        vertices.push({x: figure.width / 3, y: figure.height});
+        vertices.push({x: 0, y: figure.height / 2});
+        m.generateModel(vertices, figure.center, figure.mass);
+        return m;
+    }
+
+    generateModel(shapeInfor, center, mass) {
         if (shapeInfor instanceof Array) {
             this.type = POLYGON_TYPE;
             this.vertices = shapeInfor;
