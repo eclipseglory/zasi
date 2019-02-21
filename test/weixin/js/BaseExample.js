@@ -11,7 +11,7 @@ export default class BaseExample {
                 that.ontouch(evt);
             }
         }
-
+        this.imagePath = '';
     }
 
     ontouch(evt) {

@@ -6,7 +6,8 @@ export default class Spiritsheet extends BaseExample {
     }
 
 
-    run() {
+    run(imagePath) {
+        imagePath = imagePath || '';
         let filter = 0;
         this.ontouch = function (evt) {
             spirit.opacity = 1;
@@ -43,7 +44,7 @@ export default class Spiritsheet extends BaseExample {
             height: h,
             angularVelocity: 0.01
         });
-        graph.loadImage('boom', 'images/fire_001.png', {
+        graph.loadImage('boom', imagePath + 'images/fire_001.png', {
             success: function (texture) {
                 spirit.texture = texture;
                 spirit.addSheetAnimation({

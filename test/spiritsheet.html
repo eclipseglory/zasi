@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>Spirit Sheet Animation</title>
     <script src="test.js"></script>
+    <script src="./weixin/js/libs/zasi.min.js"></script>
+    <script src="./weixin/js/libs/tielifa.min.js"></script>
 </head>
 <body>
 
@@ -11,58 +13,11 @@
 <script type="module">
     import Spirit from "../src/spirit/Spirit.js";
     import Graph from "../src/Graph.js";
+    import Spiritsheet from "./weixin/js/Spiritsheet.js";
 
     createOneFullCanvas('Press canvas to play/pause sheet animation and change image filter');
-    let filter = 0;
-    webgl.onmousedown = function () {
-        spirit.opacity = 1;
-        filter++; if(filter > 12) filter = 0;
-        spirit.filter = filter;
-        if (spirit.currentSheetAnimation.key !== 'boom') {
-            spirit.playSheetAnimation('boom', {
-                complete: function () {
-                    spirit.opacity = 0.6;
-                }
-            });
-        } else {
-            // if (spirit.paused) {
-            //     spirit.startMove();
-            // } else {
-            //     spirit.pauseMove();
-            // }
-            if (spirit.currentSheetAnimationPaused) {
-                spirit.playCurrentSheetAnimation();
-            } else {
-                spirit.pauseCurrentSheetAnimation();
-            }
-        }
-    };
-    let graph = new Graph(webgl);
-    let min = Math.min(webgl.width, webgl.height);
-    let w = min / 2;
-    let h = w;
-    let spirit = new Spirit({
-        x: (webgl.width - w) / 2,
-        y: (webgl.height - h) / 2,
-        width: w,
-        height: h,
-        angularVelocity: 0.01
-    });
-    graph.loadImage('boom', 'images/fire_001.png', {
-        success: function (texture) {
-            spirit.texture = texture;
-            spirit.addSheetAnimation({
-                time: 1000,
-                start: 0,
-                end: 19,
-                loop: true,
-                key: 'boom'
-            });
-        }
-    }, {row: 4, column: 5});
-    spirit.startMove();
-    graph.addChild(spirit);
-    graph.startLoopRefresh();
+    let s = new Spiritsheet(webgl);
+    s.run('weixin/');
 
 </script>
 </html>
