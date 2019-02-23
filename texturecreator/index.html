@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>贴图生成工具</title>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+            integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+            crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+            crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="bootstrap.min.css"/>
+    <script src="bootstrap.min.js"></script>
+</head>
+<body>
+<!--<main role="main" class="container">-->
+<!--<div class="container rounded ">-->
+<!--<blockquote class="blockquote text-center">-->
+<!--<p class="mb-0">贴图生成工具</p>-->
+<!--<footer class="blockquote-footer">屌丝版本</footer>-->
+<!--</blockquote>-->
+
+<!--</div>-->
+<!--</main>-->
+
+<!--<main role="main" class="container">-->
+<div class="container-fluid">
+    <blockquote class="blockquote text-center">
+        <p class="mb-0">贴图生成工具</p>
+        <footer class="blockquote-footer">屌丝版本</footer>
+    </blockquote>
+    <div class="row">
+        <div class="col-4">
+            <div class="p-3 text-light">
+                <div class="form-row">
+                    <div class='form-group col-md-12'>
+                        <button type='button' class="btn btn-primary"
+                                onclick="document.getElementById('fileInput').click();">
+                            Add Images
+                        </button>
+                        <button type='button' class="btn btn-primary"
+                                onclick="removeListItem();">
+                            Remove Image
+                        </button>
+                    </div>
+                    <div class='form-group col-md-12'>
+                        <select multiple class="form-control" id="selectList" onchange="imageSelectChange(this);">
+                        </select>
+                    </div>
+
+                    <div class="form-group col-md-12">
+                        <label style='color:black' id='imageDes' for="previewImg">Width</label>
+                        <img id='previewImg' src="" class="card-img-top"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-8">
+            <div class="p-3 bg-dark  text-light">
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label for="textureWidth">Width</label>
+                        <input type="number" class="form-control" value="1024" id="textureWidth" placeholder="1024">
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="textureHeight">Height</label>
+                        <input type="number" class="form-control" value="1024" id="textureHeight"
+                               placeholder="1024">
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="textureSpace">Space</label>
+                        <input type="number" class="form-control" value="5" id="textureSpace" placeholder="5">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class='form-group col-md-6'>
+                        <button type='button' class="btn btn-primary" id="createButton">
+                            Create
+                        </button>
+                        <button type='button' class="btn btn-primary" id="downloadButton" onclick="downloadTextures();">
+                            Download
+                        </button>
+                    </div>
+                    <div class='form-group col-md-6'>
+
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div id='canvasContainer' class='form-group col-md-12'>
+                        <div id="testDiv"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!--</main>-->
+<!-- hidden-->
+<input id="fileInput" type="file" style="display:none;" onchange="changeImages(this)" multiple/>
+</body>
+
+<script>
+
+    function imageSelectChange(list) {
+        for (let i = 0; i < list.length; i++) {
+            let item = list[i];
+            if (item.selected) {
+                imageDes.innerText = item.id;
+                previewImg.src = item.value;
+                previewImg.onload = function (evt) {
+                    let target = evt.target;
+                    imageDes.innerText += ' ' + target.width + ' x ' + target.height;
+                };
+                break;
+            }
+        }
+    }
+
+    function downloadTextures() {
+        for (let i = 0; i < canvasContainer.childNodes.length; i++) {
+            let canvas = canvasContainer.childNodes[i];
+            if (canvas.nodeName.toLocaleLowerCase() == 'canvas') {
+                var link = document.createElement('a');
+                link.download = 'texture' + i + '.png';
+                link.href = canvas.toDataURL()
+                link.click();
+
+                var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(canvas.textureData);
+                link.href = dataStr;
+                link.download = 'texture' + i + '.json';
+                link.click();
+            }
+        }
+    }
+
+    function removeListItem() {
+        let list = document.getElementById('selectList');
+        let remove = [];
+        for (let i = 0; i < list.length; i++) {
+            let child = list[i];
+            if (child.selected) {
+                remove.push(child);
+            }
+        }
+        for (let i = 0; i < remove.length; i++) {
+            list.removeChild(remove[i]);
+        }
+    }
+
+    function changeImages(target) {
+        let list = document.getElementById('selectList');
+        let imageList = [];
+        for (let i = 0; i < list.childNodes.length; i++) {
+            let child = list.childNodes[i];
+            if (child.id !== undefined) {
+                imageList.push({id: child.id, src: child.value});
+            }
+        }
+        for (let i = 0; i < target.files.length; i++) {
+            let file = target.files[i];
+            let src = URL.createObjectURL(file);
+            let lastDotIndex = file.name.lastIndexOf('.');
+            let id = file.name;
+            if (lastDotIndex != -1) {
+                id = file.name.substring(0, lastDotIndex);
+            }
+            if (!contains(id)) {
+                //<a class="list-group-item" onclick="activeMe(this);">First item</a>
+                let a = document.createElement('option');
+                // a.onclick = function (evt) {
+                //     let target = evt.target;
+                //     activeMe(target);
+                // };
+                a.value = src;
+                a.id = id;
+                a.innerText = id;
+                list.append(a);
+            }
+        }
+
+        function contains(src) {
+            for (let i = 0; i < imageList.length; i++) {
+                let child = imageList[i];
+                if (child.id === src) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        console.log(target.files);
+    }
+
+</script>
+
+<script type="module">
+
+    import TextureCreator from "./TextureCreator.js";
+
+    let textureArray = [];
+    createButton.addEventListener("click", function () {
+        let list = document.getElementById('selectList');
+        let imageList = [];
+        for (let i = 0; i < list.length; i++) {
+            let child = list[i];
+            if (child.id !== undefined) {
+                imageList.push({id: child.id, src: child.value});
+            }
+        }
+        let c = new TextureCreator({
+            width: parseInt(textureWidth.value),
+            height: parseInt(textureHeight.value),
+            space: parseInt(textureSpace.value)
+        });
+        textureArray.length = 0;
+        for (let i = 0; i < canvasContainer.childNodes.length; i++) {
+            let canvas = canvasContainer.childNodes[i];
+            if (canvas.nodeName.toLocaleLowerCase() == 'canvas') {
+                canvasContainer.removeChild(canvas);
+            }
+        }
+        c.loadResources(imageList, function (images) {
+            let result = c.park();
+            let infosArray = result.parkedInfo;
+            let remainedImages = result.remainImages;
+            for (let i = 0; i < infosArray.length; i++) {
+                let infos = infosArray[i];
+                let canvas = document.createElement('canvas');
+                canvas.style.borderWidth = '1px';
+                canvas.style.border = 'solid';
+                canvas.className = 'col-md-6';
+                canvas.style.borderColor = '#FFFFFF';
+                // canvas.style.width = testDiv.clientWidth/2 + 'px';
+                // canvas.style.height = Math.floor((c.height / c.width) * testDiv.clientWidth/2) + 'px';
+                canvas.width = c.width;
+                canvas.height = c.height;
+                let ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.strokeStyle = 'red';
+                let xfar = 0;
+                let yfar = 0;
+                for (let i = 0; i < infos.length; i++) {
+                    let info = infos[i];
+                    ctx.drawImage(info.img, info.x, info.y);
+                    if (info.x + info.img.width > xfar) {
+                        xfar = info.x + info.img.width;
+                    }
+                    if (info.y + info.img.height > yfar) {
+                        yfar = info.y + info.img.height;
+                    }
+                    delete info.img;
+                }
+                canvas.textureData = JSON.stringify(infos);
+                let imgData = ctx.getImageData(0, 0, xfar, yfar);
+                canvas.width = xfar;
+                canvas.height = yfar;
+                ctx.putImageData(imgData, 0, 0);
+                textureArray.push({
+                    imageData: ctx.getImageData(0, 0, xfar, yfar),
+                    texture: {width: xfar, height: yfar, space: c.space, id: 0, textures: infos}
+                });
+                canvasContainer.append(canvas);
+            }
+        });
+    });
+
+
+</script>
+</html>
