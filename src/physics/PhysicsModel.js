@@ -14,7 +14,6 @@ export default class PhysicsModel {
         this.type = p['type'] || POLYGON_TYPE;
         this.axis = [];
         this.vertices = null;
-        this.center = null;
         this.radiusX = null;
         this.radiusY = null;
         this.originalVertices = [];
