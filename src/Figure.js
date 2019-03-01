@@ -2,7 +2,6 @@ import Dimension3 from "./common/Dimension3.js";
 import List from "./common/List.js";
 import Tools from "./utils/Tools.js";
 import "../libs/tielifa.min.js";
-import FigureEvent from "./FigureEvent.js";
 
 let _id = Symbol('figure对象的唯一标示');
 let _bounds = Symbol('figure左上角坐标点以及大小的一个数组,0位是x,1位是y,2位是z,3位是width,4位是height');
@@ -26,7 +25,9 @@ let GLOBAL_ID = 0;
 const EVENT_ADD_CHILD = 'add_child';
 const EVENT_REMOVE_CHILD = 'remove_child';
 const EVENT_BEFORE_DRAW_SELF = 'before_draw_self';
+const EVENT_PARENT_CHANGE = 'parent_change';
 const EVENT_AFTER_DRAW_SELF = 'after_draw_self';
+const EVENT_TRANSFORM_CHANGED = 'transform_changed';
 
 const FIGURE_EVENT = {name: null, figure: null, property: null};
 export default class Figure {
@@ -54,9 +55,13 @@ export default class Figure {
         this[_rotate].z = properties['rotate'] || 0;
 
         this[_opacity] = properties["opacity"] || 1;
-        this.parent = null;
+        this[_parent] = null;
         this[_methods] = [];
-        this[_visible] = properties['visible'] || true;
+        if(this[_visible] != undefined){
+            this[_visible] = properties['visible'];
+        }else{
+            this[_visible] = true;
+        }
         this[_transformCalculator] = null;
         this[_children] = new List();
         this[_relatedRegion] = [];
@@ -71,6 +76,14 @@ export default class Figure {
         this._tempP2 = new Float32Array(4);
         this._tempP3 = new Float32Array(4);
         this._tempP4 = new Float32Array(4);
+    }
+
+    static get EVENT_TRANSFORM_CHANGED() {
+        return EVENT_TRANSFORM_CHANGED;
+    }
+
+    static get EVENT_PARENT_CHANGE() {
+        return EVENT_PARENT_CHANGE;
     }
 
     static get EVENT_ADD_CHILD() {
@@ -105,7 +118,13 @@ export default class Figure {
     }
 
     set parent(parent) {
-        this[_parent] = parent;
+        if (this[_parent] != parent) {
+            FIGURE_EVENT.name = EVENT_PARENT_CHANGE;
+            FIGURE_EVENT.figure = this;
+            FIGURE_EVENT.property = {oldparent: this[_parent], currentparent: parent};
+            this[_parent] = parent;
+            this.fireEvent(EVENT_PARENT_CHANGE, FIGURE_EVENT);
+        }
     }
 
     get relatedRegions() {
@@ -129,6 +148,14 @@ export default class Figure {
     }
 
     fireTransformChange(changed) {
+        if (changed) {
+            if(!this[_transformChanged]){
+                FIGURE_EVENT.figure = this;
+                FIGURE_EVENT.name = EVENT_TRANSFORM_CHANGED;
+                FIGURE_EVENT.property = null;
+                this.fireEvent(EVENT_TRANSFORM_CHANGED, FIGURE_EVENT);
+            }
+        }
         this[_transformChanged] = changed;
     }
 
@@ -153,6 +180,7 @@ export default class Figure {
     }
 
     update(ctx) {
+        if (this.width == 0 || this.height == 0) return;
         ctx.save();
         this.beforeDraw(ctx);
         this.applyTransform(ctx);
@@ -161,18 +189,19 @@ export default class Figure {
         this.afterDraw(ctx);
         this.updateChildren(ctx);
         ctx.restore();
-
     }
 
     beforeDraw(ctx) {
         FIGURE_EVENT.name = EVENT_BEFORE_DRAW_SELF;
         FIGURE_EVENT.figure = this;
+        FIGURE_EVENT.property = null;
         this.fireEvent(EVENT_BEFORE_DRAW_SELF, FIGURE_EVENT);
     }
 
     afterDraw(ctx) {
         FIGURE_EVENT.name = EVENT_AFTER_DRAW_SELF;
         FIGURE_EVENT.figure = this;
+        FIGURE_EVENT.property = null;
         this.fireEvent(EVENT_AFTER_DRAW_SELF, FIGURE_EVENT);
     }
 

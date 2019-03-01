@@ -1,28 +1,23 @@
 import Tools from "../utils/Tools.js";
-import Figure from "../Figure.js";
-import List from "../common/List.js";
 import Point2D from "../common/Point2D.js";
 import '../../libs/tielifa.min.js';
-import FigureEvent from "../FigureEvent.js";
+import EntityFigure from "../EntityFigure.js";
 
 let _velocity = Symbol('速度');
 let _angularVelocity = Symbol('角速度');
 let _force = Symbol('受力');
 let _forcePosition = Symbol('受力位置');
-let _mass = Symbol('质量');
 let _acceleration = Symbol('加速度');
 let _sleepx = Symbol('x轴休眠');
 let _sleepy = Symbol('y轴休眠');
 let _sleepRotate = Symbol('旋转休眠');
 let _massCenter = Symbol('质心');
-let _inertia = Symbol('转动惯量');
+
 
 let _preVelocity = Symbol('前一时刻的速度');
 let _preAngularVelocity = Symbol('前一时刻的角速度');
 let _prePosition = Symbol('前一时间的位置');
 let _preRotation = Symbol('前一时刻的旋转度数');
-let _physicsModel = Symbol('figure的物理模型');
-let _contactable = Symbol('是否可碰撞，true则会进行碰撞测试，反之不会');
 let _move = Symbol('是否运动，如果为false则不会根据其速度重新计算位置');
 let _paused = Symbol('暂停运动');
 
@@ -32,22 +27,19 @@ const ANGEL_TO_RADIAN_CONST = Math.PI / 180;
 const BEFORE_CALCULATEPOSE_EVENT = 'beforeCalculatePose';
 const AFTER_CALCULATEPOSE_EVENT = 'afterCalculatePose';
 const CEVENT = {name: null, figure: null};
-export default class AbstractSpirit extends Figure {
+export default class AbstractSpirit extends EntityFigure {
     constructor(p) {
         p = p || {};
         super(p);
-        this[_contactable] = true;
         this[_preVelocity] = new tielifa.Vector2(0, 0);
         this[_prePosition] = new Point2D(0, 0);
         this[_preAngularVelocity] = 0;
-        this[_mass] = p['mass'] || 1;
         this[_velocity] = p['velocity'] || new tielifa.Vector2(0, 0);
         this[_force] = p['force'] || new tielifa.Vector2(0, 0);
         this[_angularVelocity] = p['angularVelocity'] || 0;
         this[_acceleration] = new tielifa.Vector2(0, 0);
         this[_sleepx] = false;
         this[_sleepy] = false;
-        this[_inertia] = undefined;
         this.filter = p['filter'] || tielifa.WebGL2D.Normal_Filter;
         this[_move] = false;
         // 质心位置默认是在中心
@@ -61,18 +53,6 @@ export default class AbstractSpirit extends Figure {
 
     static get AFTER_BEFORE_CALCULATE_POSE() {
         return AFTER_CALCULATEPOSE_EVENT;
-    }
-
-    get contactable() {
-        return this[_contactable];
-    }
-
-    set contactable(c) {
-        this[_contactable] = c;
-    }
-
-    get physicsModel() {
-        return this[_physicsModel];
     }
 
     static get DELTA_TIME() {
@@ -108,24 +88,6 @@ export default class AbstractSpirit extends Figure {
         return (this.mass == Infinity);
     }
 
-    get inverseInertia() {
-        if (this.mass == Infinity) return 0;
-        return 1 / this.momentInertia;
-    }
-
-    get momentInertia() {
-        if (this.mass == Infinity) return Infinity;
-        if (this[_physicsModel] == null) {
-            if (this[_inertia] == undefined) {
-                // 默认的转动惯量是绕中心转的2d矩形的转动惯量： I = m*(w^2 + h^2)/12;
-                this[_inertia] = this[_mass] * (this.width * this.width + this.height * this.height) / 12;
-            }
-            return this[_inertia];
-        } else {
-            return this[_physicsModel].momentInertia;
-        }
-    }
-
     get isSleeping() {
         return this.velocity.x == 0 && this.velocity.y == 0 && this.angularVelocity == 0;
     }
@@ -136,15 +98,6 @@ export default class AbstractSpirit extends Figure {
 
     get sleepY() {
         return this[_sleepy];
-    }
-
-    get inverseMass() {
-        if (this.mass == Infinity) return 0;
-        return 1 / this.mass;
-    }
-
-    get mass() {
-        return this[_mass];
     }
 
     get massCenter() {
@@ -159,9 +112,6 @@ export default class AbstractSpirit extends Figure {
         this[_massCenter].y = massCenter.y;
     }
 
-    set mass(mass) {
-        this[_mass] = mass;
-    }
 
     get angularVelocity() {
         return this[_angularVelocity];
@@ -247,10 +197,10 @@ export default class AbstractSpirit extends Figure {
     }
 
     beforeDraw(ctx) {
-        super.beforeDraw(ctx);
         if (this[_move] && !this.paused) {
             this.calculateCurrentPose();
         }
+        super.beforeDraw(ctx);
     }
 
 
@@ -312,14 +262,6 @@ export default class AbstractSpirit extends Figure {
         this.fireEvent(AFTER_CALCULATEPOSE_EVENT, CEVENT);
     }
 
-    set physicsModel(model) {
-        this[_physicsModel] = model;
-    }
-
-    get physicsModel() {
-        return this[_physicsModel];
-    }
-
     startMove() {
         if (this.paused) {
             this[_paused] = false;
@@ -330,13 +272,13 @@ export default class AbstractSpirit extends Figure {
         this[_sleepRotate] = false;
         this[_move] = true;
         this[_paused] = false;
-        let world = this.getGraph();
-        if (world != undefined) {
-            if (world.monitorSpiritBeforeMove)
-                this.addEventListener(BEFORE_CALCULATEPOSE_EVENT, world.monitorSpiritBeforeMove);
-            if (world.monitorSpiritAfterMove)
-                this.addEventListener(AFTER_CALCULATEPOSE_EVENT, world.monitorSpiritAfterMove);
-        }
+        // let world = this.getGraph();
+        // if (world != undefined) {
+        //     if (world.monitorSpiritBeforeMove)
+        //         this.addEventListener(BEFORE_CALCULATEPOSE_EVENT, world.monitorSpiritBeforeMove);
+        //     if (world.monitorSpiritAfterMove)
+        //         this.addEventListener(AFTER_CALCULATEPOSE_EVENT, world.monitorSpiritAfterMove);
+        // }
     }
 
     get paused() {
@@ -357,11 +299,11 @@ export default class AbstractSpirit extends Figure {
         this[_force].x = this[_force].y = 0;
         this[_paused] = false;
         let world = this.getGraph();
-        if (world != undefined) {
-            if (world.monitorSpiritBeforeMove)
-                this.removeEventListener(BEFORE_CALCULATEPOSE_EVENT, world.monitorSpiritBeforeMove);
-            if (world.monitorSpiritAfterMove)
-                this.removeEventListener(AFTER_CALCULATEPOSE_EVENT, world.monitorSpiritAfterMove);
-        }
+        // if (world != undefined) {
+        //     if (world.monitorSpiritBeforeMove)
+        //         this.removeEventListener(BEFORE_CALCULATEPOSE_EVENT, world.monitorSpiritBeforeMove);
+        //     if (world.monitorSpiritAfterMove)
+        //         this.removeEventListener(AFTER_CALCULATEPOSE_EVENT, world.monitorSpiritAfterMove);
+        // }
     }
 }
