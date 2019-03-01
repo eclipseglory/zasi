@@ -1,15 +1,29 @@
 import BaseExample from "./BaseExample.js";
-// import World from "../../../src/World.js";
-// import TestRectSpirit from "../../../src/spirit/TestRectSpirit.js";
-// import PhysicsModel from "../../../src/physics/PhysicsModel.js";
+import World from "../../../src/World.js";
+import TestRectSpirit from "../../../src/spirit/TestRectSpirit.js";
+import PhysicsModel from "../../../src/physics/PhysicsModel.js";
 
 export default class Collision extends BaseExample {
     constructor(c) {
         super(c);
+        this.rect1;
+    }
+
+    ontouch(evt, x, y) {
+        let bounds = this.rect1.getSelectBounds();
+        let center = {x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2};
+        let speed = 2;
+        let v = {x: x - center.x, y: y - center.y};
+        let length = v.x * v.x + v.y * v.y;
+        length = Math.sqrt(length);
+        let vn = {x: v.x / length, y: v.y / length};
+        this.rect1.velocity.x += vn.x * speed;
+        this.rect1.velocity.y += vn.y * speed;
+
     }
 
     run(imageBasePath) {
-        let world = new zasi.World(this.canvas, {enableDepthTest: true, e: 1, showDebug: true});
+        let world = new World(this.canvas, {enableDepthTest: true, e: 0, showDebug: true});
         if (typeof wx !== 'undefined') {
             let scale = wx.getSystemInfoSync().pixelRatio;
             console.log(scale);
@@ -18,33 +32,34 @@ export default class Collision extends BaseExample {
             this.canvas.height *= scale;
             world.ctx.scale(scale, scale);
         }
-        let rect = new zasi.spirit.TestRectSpirit({
-            velocity: {x: 1, y: 0},
-            rotate: 30,
-            angularVelocity: 0.01,
-            // force: {x: 0, y: 0.01},
+        this.rect1 = new TestRectSpirit({
+            velocity: {x: 0, y: 0},
+            rotate: -30,
+            // angularVelocity: 0.01,
+            force: {x: 0, y: 0.1},
             x: 100,
             y: 100,
             width: 50,
-            height: 50
+            height: 300
         });
-        rect.physicsModel = zasi.physics.PhysicsModel.createDefaultModel(rect);
+        let rect = this.rect1;
+        rect.physicsModel = PhysicsModel.createDefaultModel(rect);
 
-        let rect1 = new zasi.spirit.TestRectSpirit({
-            velocity: {x: 2, y: -2},
+        let rect1 = new TestRectSpirit({
+            velocity: {x: -1, y: -2},
             rotate: 0,
             angularVelocity: 0.01,
-            // force: {x: 0, y: 0.01},
+            force: {x: 0, y: 0.1},
             x: 200,
             y: 200,
             width: 50,
             height: (50 / 2) * Math.tan(60 * Math.PI / 180),
             color: 'yellow'
         });
-        rect1.physicsModel = zasi.physics.PhysicsModel.createRegularTriangleModel(rect1);
+        rect1.physicsModel = PhysicsModel.createRegularTriangleModel(rect1);
 
 
-        let border1 = new zasi.spirit.TestRectSpirit({
+        let border1 = new TestRectSpirit({
             x: -95,
             y: 1,
             width: 100,
@@ -52,8 +67,8 @@ export default class Collision extends BaseExample {
             color: 'red',
             mass: Infinity
         });
-        border1.physicsModel = zasi.physics.PhysicsModel.createDefaultModel(border1);
-        let border2 = new zasi.spirit.TestRectSpirit({
+        border1.physicsModel = PhysicsModel.createDefaultModel(border1);
+        let border2 = new TestRectSpirit({
             x: 0,
             y: -95,
             width: world.width,
@@ -61,8 +76,8 @@ export default class Collision extends BaseExample {
             color: 'red',
             mass: Infinity
         });
-        border2.physicsModel = zasi.physics.PhysicsModel.createDefaultModel(border2);
-        let border3 = new zasi.spirit.TestRectSpirit({
+        border2.physicsModel = PhysicsModel.createDefaultModel(border2);
+        let border3 = new TestRectSpirit({
             x: world.width - 5,
             y: 5,
             width: 100,
@@ -70,8 +85,8 @@ export default class Collision extends BaseExample {
             color: 'red',
             mass: Infinity
         });
-        border3.physicsModel = zasi.physics.PhysicsModel.createDefaultModel(border3);
-        let border4 = new zasi.spirit.TestRectSpirit({
+        border3.physicsModel = PhysicsModel.createDefaultModel(border3);
+        let border4 = new TestRectSpirit({
             x: 5,
             y: world.height - 5,
             width: world.width - 10,
@@ -79,13 +94,25 @@ export default class Collision extends BaseExample {
             color: 'red',
             mass: Infinity
         });
-        border4.physicsModel = zasi.physics.PhysicsModel.createDefaultModel(border4);
+        border4.physicsModel = PhysicsModel.createDefaultModel(border4);
+
+        let border5 = new TestRectSpirit({
+            x: -300,
+            y: world.height - 200,
+            width: 500,
+            height: 500,
+            color: 'red',
+            mass: Infinity
+        });
+        border5.physicsModel = PhysicsModel.createRegularTriangleModel(border4);
+
         world.addChild(rect);
-        world.addChild(rect1);
+        // world.addChild(rect1);
         world.addChild(border1);
         world.addChild(border2);
         world.addChild(border3);
         world.addChild(border4);
+        world.addChild(border5);
         world.startWorld();
     }
 }

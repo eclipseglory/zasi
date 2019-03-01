@@ -4,16 +4,16 @@ export default class BaseExample {
         this.canvas = c;
         if (typeof wx !== 'undefined') {
             wx.onTouchStart(function (evt) {
-                that.ontouch(evt);
+                that.ontouch(evt,evt.touches[0].x,evt.touches[0].y);
             })
         } else {
             this.canvas.onmousedown = function (evt) {
-                that.ontouch(evt);
+                that.ontouch(evt,evt.offsetX,evt.offsetY);
             }
         }
     }
 
-    ontouch(evt) {
+    ontouch(evt,x,y) {
 
     }
 
