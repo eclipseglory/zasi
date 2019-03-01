@@ -43,6 +43,7 @@ export default class GeometryTools {
             }
             return false;
         }
+
         existAxis = null;
         return output;
     }

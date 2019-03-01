@@ -121,7 +121,7 @@ export default class SAT {
         // 四个点钟找到中间那个点
         let maxpoint = points1.p1;
         let minpoint = points1.p1;
-        let tempTan = {x: normal.y, y: normal.x};
+        let tempTan = {x: -normal.y, y: normal.x};
         for (let p in points1) {
             let pointInfo = points1[p];
             let maxp = maxpoint.vertices[maxpoint.index];

@@ -14,6 +14,7 @@ export default class ImageFigure extends Figure {
     }
 
     drawSelf(ctx) {
+        if(this.texture == null) return;
         if (this.targetWidth == 0 || this.targetHeight == 0) {
             ctx.drawImage(this.texture, 0, 0, this.width, this.height);
         } else {
