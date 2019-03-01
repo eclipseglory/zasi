@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>tile map生成工具</title>
+    <script src="libs/jquery-3.3.1.slim.min.js"></script>
+    <script src="libs/popper.min.js"></script>
+    <link rel="stylesheet" href="libs/bootstrap.min.css"/>
+    <script src="libs/bootstrap.min.js"></script>
+</head>
+<body>
+<div class="container-fluid">
+    <blockquote class="blockquote text-center">
+        <p class="mb-0">贴图生成工具</p>
+        <footer class="blockquote-footer">屌丝版本</footer>
+    </blockquote>
+
+    <div class="row">
+        <div class="col-4">
+            <div class="p-3 text-light">
+                <div class="form-row">
+                    <div class='form-group col-md-12'>
+                        <button type='button' class="btn btn-primary"
+                                onclick="document.getElementById('fileInput').click();">
+                            Load Image
+                        </button>
+                        <button type='button' class="btn btn-primary"
+                                onclick="document.getElementById('tdInput').click();">
+                            Load Texture Data
+                        </button>
+                    </div>
+                    <div class='form-group col-md-12'>
+                        <button type='button' class="btn btn-primary"
+                                onclick="removeListItem();">Delete
+                        </button>
+                    </div>
+                    <div class='form-group col-md-12'>
+                        <canvas id="texture"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-8">
+            <div class="p-3 bg-dark  text-light">
+                <div class='form-row'>
+                    <div class="form-group col-md-4">
+                        <canvas id="previewTile"></canvas>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label for="mapRow">Row</label>
+                        <input type="number" class="form-control" value="10" id="mapRow" placeholder="10">
+                    </div>
+                    <div class="form-group col-md-4">
+                        <label for="mapColumn">Column</label>
+                        <input type="number" class="form-control" value="10" id="mapColumn" placeholder="10">
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label for="fileName">Map Name</label>
+                        <input type="text" class="form-control" value="tiledmap" id="fileName" placeholder="tiledmap">
+                    </div>
+                </div>
+
+                <!--<div class='form-row'>-->
+                    <div class="form-check col-md-4">
+                        <input class="form-check-input" type="radio" name="exampleRadios" id="drawAction" value="draw"
+                               checked>
+                        <label class="form-check-label" for="drawAction">
+                            Draw Map Tile
+                        </label>
+                    </div>
+
+                <!--</div>-->
+                <div class='form-row'>
+                    <div class="form-group col-md-12">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="exampleRadios" id="physicsAction"
+                                   value="physics">
+                            <label class="form-check-label" for="physicsAction">
+                                Create Physics Model
+                            </label>
+                        </div>
+                        <div class="form-group col-md-12">
+                            <!--<div class="form-row col-md-12">-->
+                                <select class="custom-select" id="physicsModelSelect">
+                                    <option selected>Choose Model Type...</option>
+                                    <option value="rect">Regular Rectangle</option>
+                                    <option value="triangle1">Triangle1</option>
+                                    <option value="trignale2">Triangle2</option>
+                                    <!--<option value="trignale3">Triangle3</option>-->
+                                </select>
+                            <!--</div>-->
+                            <!--<div class="form-row col-md-12">-->
+                                    <label for="mapRow">Row</label>
+                                    <input type="number" class="form-control" value="1" id="pr" placeholder="1">
+                                    <label for="mapColumn">Column</label>
+                                    <input type="number" class="form-control" value="1" id="pc" placeholder="1">
+                                <!--<div class="form-group col-md-4">-->
+                                    <!--<label for="mapColumn">Column</label>-->
+                                    <!--<input type="number" class="form-control" value="1" id="pc" placeholder="1">-->
+                                <!--</div>-->
+                                <!--<div class="form-group col-md-3">-->
+                                    <!--<label for="fileName">Map Name</label>-->
+                                    <!--<input type="text" class="form-control" value="tiledmap" id="fileName" placeholder="tiledmap">-->
+                                <!--</div>-->
+                            <!--</div>-->
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="form-row">
+
+                    <div class='form-group col-md-3'>
+                        <button type='button' class="btn btn-primary" id="downloadButton">
+                            Download
+                        </button>
+                    </div>
+                    <div class='form-group col-md-6'>
+
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div id='canvasContainer' class='form-group col-md-12 align-content-center'>
+                        <div class="">
+                            <div id="testDiv"></div>
+                            <canvas id="mapCanvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- hidden-->
+<input id="fileInput" type="file" style="display:none;"/>
+<input id="tdInput" type="file" style="display:none;"/>
+</body>
+<script>
+    // function loadTexture(input) {
+    //     let file = input.files[i];
+    //     let src = URL.createObjectURL(file);
+    //     let image = new Image();
+    //     image.onload = function(){
+    //
+    //     }
+    // }
+</script>
+<script type='module'>
+    import TileSelector from "./TileSelector.js";
+    import Map from "./Map.js";
+    import PhysicsModel from "./PhysicsModel.js";
+
+    let map = new Map(mapCanvas);
+    downloadButton.addEventListener('click', downloadTextures);
+
+    function downloadTextures() {
+        let index = 0;
+        let name = fileName.value;
+        let mapInfo = {row: map.row, column: map.column, offset: {x: 0, y: 0}, datas: map.datas};
+        mapInfo = JSON.stringify(mapInfo);
+        let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(mapInfo);
+        var link = document.createElement('a');
+        link.href = dataStr;
+        link.download = name + index + '.json';
+        link.click();
+    }
+
+    function physicsModelChanges(){
+        let row = parseFloat(pr.value);
+        let column = parseFloat(pc.value);
+        let type = null;
+        for (let i = 0; i < physicsModelSelect.length; i++) {
+            let item = physicsModelSelect[i];
+            if (item.selected) {
+                type = item.value;
+                break;
+            }
+        }
+        map.physicsModel = PhysicsModel.createModel(type,row,column);
+        console.log(map.physicsModel);
+    }
+
+    pr.addEventListener('change',physicsModelChanges);
+    pc.addEventListener('change',physicsModelChanges);
+    physicsModelSelect.addEventListener('change',physicsModelChanges);
+
+    function updateMapCanvas() {
+        let row = parseInt(mapRow.value);
+        let column = parseInt(mapColumn.value);
+        let maxSize = testDiv.clientWidth;
+        map.update(row, column, maxSize);
+    }
+
+    mapRow.addEventListener('change', updateMapCanvas);
+    mapColumn.addEventListener('change', updateMapCanvas);
+
+    drawAction.addEventListener('click', changeAction);
+    physicsAction.addEventListener('click', changeAction);
+
+    updateMapCanvas();
+    physicsModelSelect.disabled = true;
+    function changeAction(evt) {
+        physicsModelSelect.disabled = !physicsAction.checked;
+        if (drawAction.checked) {
+            map.drawType = 'tile';
+            // physicsModelSelect.disabled = 'false';
+        }
+        if (physicsAction.checked) {
+            map.drawType = 'physics';
+            // physicsModelSelect.disabled = 'true';
+        }
+    }
+
+    function imageChanged(evt) {
+        evt.target.removeEventListener('change', imageChanged);
+        loadTexture(fileInput);
+        evt.target.value = '';
+        evt.target.addEventListener('change', imageChanged);
+    }
+
+    function tdChanged(evt) {
+        evt.target.removeEventListener('change', tdChanged);
+        let file = evt.target.files[0];
+        let r = new FileReader();
+        r.onload = function (evt) {
+            let data = JSON.parse(r.result);
+            s.installTextureData(data.textures);
+        };
+        r.readAsText(file);
+        evt.target.value = '';
+        evt.target.addEventListener('change', tdChanged);
+    }
+
+    fileInput.addEventListener('change', imageChanged);
+    tdInput.addEventListener('change', tdChanged);
+
+    let s = new TileSelector();
+    s.hookCanvas(texture);
+    previewTile.width = texture.width / 5;
+    previewTile.height = texture.height / 5;
+
+    s.selectTileCallback = function (tile) {
+        let ctx = previewTile.getContext('2d');
+        ctx.clearRect(0, 0, previewTile.width, previewTile.height);
+        if (tile != null) {
+            ctx.drawImage(s.texture, tile.x, tile.y, tile.width, tile.height,
+                0, 0, previewTile.width, previewTile.height);
+        }
+        map.currentTextureData = tile;
+        map.image = s.texture;
+        console.log(tile);
+    };
+
+    function loadTexture(input) {
+        let file = input.files[0];
+        let src = URL.createObjectURL(file);
+        let img = new Image();
+        img.onload = function (evt) {
+            s.initCanvas(evt.target);
+        };
+        img.src = src;
+    }
+
+
+</script>
+</html>

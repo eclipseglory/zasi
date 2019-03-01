@@ -4,14 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>贴图生成工具</title>
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
-            integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
-            crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
-            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
-            crossorigin="anonymous"></script>
-    <link rel="stylesheet" href="bootstrap.min.css"/>
-    <script src="bootstrap.min.js"></script>
+    <script src="libs/jquery-3.3.1.slim.min.js"></script>
+    <script src="libs/popper.min.js"></script>
+    <link rel="stylesheet" href="libs/bootstrap.min.css"/>
+    <script src="libs/bootstrap.min.js"></script>
 </head>
 <body>
 <!--<main role="main" class="container">-->
@@ -60,16 +56,20 @@
         <div class="col-8">
             <div class="p-3 bg-dark  text-light">
                 <div class="form-row">
-                    <div class="form-group col-md-4">
+                    <div class="form-group col-md-3">
+                        <label for="fileName">Name</label>
+                        <input type="text" class="form-control" value="textureName" id="fileName" placeholder="5">
+                    </div>
+                    <div class="form-group col-md-3">
                         <label for="textureWidth">Width</label>
                         <input type="number" class="form-control" value="1024" id="textureWidth" placeholder="1024">
                     </div>
-                    <div class="form-group col-md-4">
+                    <div class="form-group col-md-3">
                         <label for="textureHeight">Height</label>
                         <input type="number" class="form-control" value="1024" id="textureHeight"
                                placeholder="1024">
                     </div>
-                    <div class="form-group col-md-4">
+                    <div class="form-group col-md-3">
                         <label for="textureSpace">Space</label>
                         <input type="number" class="form-control" value="5" id="textureSpace" placeholder="5">
                     </div>
@@ -119,18 +119,23 @@
     }
 
     function downloadTextures() {
+        let index = 0;
+        let name = fileName.value;
         for (let i = 0; i < canvasContainer.childNodes.length; i++) {
             let canvas = canvasContainer.childNodes[i];
             if (canvas.nodeName.toLocaleLowerCase() == 'canvas') {
                 var link = document.createElement('a');
-                link.download = 'texture' + i + '.png';
+                link.download = name + index + '.png';
                 link.href = canvas.toDataURL()
                 link.click();
-
-                var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(canvas.textureData);
+                let ta = canvas.textureData;
+                let td = {image: name + index + '.png', offset: {x: 0, y: 0}, textures: ta};
+                td = JSON.stringify(td);
+                let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(td);
                 link.href = dataStr;
-                link.download = 'texture' + i + '.json';
+                link.download = name + index + '.json';
                 link.click();
+                index++;
             }
         }
     }
@@ -252,15 +257,15 @@
                     }
                     delete info.img;
                 }
-                canvas.textureData = JSON.stringify(infos);
+                canvas.textureData = infos;
                 let imgData = ctx.getImageData(0, 0, xfar, yfar);
                 canvas.width = xfar;
                 canvas.height = yfar;
                 ctx.putImageData(imgData, 0, 0);
-                textureArray.push({
-                    imageData: ctx.getImageData(0, 0, xfar, yfar),
-                    texture: {width: xfar, height: yfar, space: c.space, id: 0, textures: infos}
-                });
+                // textureArray.push({
+                //     imageData: ctx.getImageData(0, 0, xfar, yfar),
+                //     texture: {width: xfar, height: yfar, space: c.space, id: 0, textures: infos}
+                // });
                 canvasContainer.append(canvas);
             }
         });
