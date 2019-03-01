@@ -1,8 +1,10 @@
 import Tools from "../utils/Tools.js";
 import '../../libs/tielifa.min.js'
 
-let impulseIterateCount = 100;
+let impulseIterateCount = 5;
 let minImpulseValue = 0.00001;
+const RADIAN_TO_ANGEL_CONST = 180 / Math.PI;
+const ANGEL_TO_RADIAN_CONST = Math.PI / 180;
 export default class RigidPhysics {
 
     static get impulseIterateCount() {
@@ -38,6 +40,7 @@ export default class RigidPhysics {
      */
     static solveCollision(figureA, figureB, centerA, centerB, verticesA, verticesB, contactPoints, contactPlanes, n, e, depth) {
 
+
         function updateFigureVelocityAndPose(figure, deltaLinearVelocity, deltaAngularVelocity, sign) {
             if (sign == undefined) sign = 1;
             figure.velocity.x += sign * deltaLinearVelocity.x;
@@ -45,8 +48,10 @@ export default class RigidPhysics {
             figure.angularVelocity += sign * deltaAngularVelocity;
             if (Tools.equals(figure.velocity.x, 0)) figure.velocity.x = 0;
             if (Tools.equals(figure.velocity.y, 0)) figure.velocity.y = 0;
-            // if (Tools.equals(figure.angularVelocity.x, 0)) figure.angularVelocity = 0;
             if (Math.abs(figure.angularVelocity) < 0.0001) figure.angularVelocity = 0;
+            figure.x += sign * deltaLinearVelocity.x;
+            figure.y += sign * deltaLinearVelocity.y;
+            figure.rotate += sign * deltaAngularVelocity * RADIAN_TO_ANGEL_CONST;
         }
 
 
@@ -64,6 +69,8 @@ export default class RigidPhysics {
                 break;
             }
         }
+
+        // console.log('round finied');
 
         function impulseIsZero(impulse) {
             for (let p in impulse) {
@@ -108,15 +115,23 @@ export default class RigidPhysics {
         if (contactPoints instanceof Array) {
             contactNum = contactPoints.length;
         }
-        let t = new tielifa.Vector2(n.y, n.x);
+        let t = new tielifa.Vector2(-n.y, n.x);
         let im = {};
+        let bias = 1;
+        bias = Math.max(depth - bias, 0);
+        let factor = 0.1;
+        bias *= factor;
         for (let i = 0; i < contactNum; i++) {
             let contactPoint = contactPoints[i];
             if (contactPoint == undefined) contactPoint = contactPoints;
             let r1p = new tielifa.Vector2(contactPoint.x - rotatePoint1.x, contactPoint.y - rotatePoint1.y);
             let r2p = new tielifa.Vector2(contactPoint.x - rotatePoint2.x, contactPoint.y - rotatePoint2.y);
             let result1 = this.calculateCurrentContactImpulse(linearVelocity1, linearVelocity2, angularVelocity1, angularVelocity2,
-                inverseMass1, inverseMass2, inverseInertia1, inverseInertia2, r1p, r2p, n, e, contactPoints.length);
+                inverseMass1, inverseMass2, inverseInertia1, inverseInertia2, r1p, r2p, n, e, 1, bias);
+            if (tielifa.Vector2.dot(t, linearVelocity1) < 0) {
+                t.x *= -1;
+                t.y *= -1;
+            }
             let currentNormalImpulse = result1.jn;
             let currentTangentImpulse = result1.jt;
             if (contactPoint.normalImpulseSum == undefined) contactPoint.normalImpulseSum = 0;
@@ -162,11 +177,15 @@ export default class RigidPhysics {
     }
 
     static calculateCurrentContactImpulse(linearVelocity1, linearVelocity2, angularVelocity1, angularVelocity2,
-                                          inverseMass1, inverseMass2, inverseInertia1, inverseInertia2, r1p, r2p, n, e, totalContacts) {
+                                          inverseMass1, inverseMass2, inverseInertia1, inverseInertia2, r1p, r2p, n, e, totalContacts, bias) {
         // 计算接触点的相对速度Vrep , 公式：Vrp = V + WxRrp; 把接触点的角速度换成线速度再和物体线速度相加
         // W x R =  (−W Ry, W Rx, 0)
         // 接触面横向向量：
-        let t = new tielifa.Vector2(n.y, n.x);
+        let t = new tielifa.Vector2(-n.y, n.x);
+        if (tielifa.Vector2.dot(t, linearVelocity1) < 0) {
+            t.x *= -1;
+            t.y *= -1;
+        }
         let tempVector = {x: 0, y: 0};
         tempVector.x = -angularVelocity1 * r1p.y;
         tempVector.y = angularVelocity1 * r1p.x;
@@ -182,9 +201,6 @@ export default class RigidPhysics {
 
         tempVector.x = x1 - tempVector.x;
         tempVector.y = y1 - tempVector.y;
-        // let bias = 0.1*3;
-        // let vbias = {x:0,y:0};
-        // Vector2.multiplyValue(vbias,n,bias);
 
         // 横向速度大小(标量)
         let tSpeed = tielifa.Vector2.dot(tempVector, t);
@@ -193,7 +209,7 @@ export default class RigidPhysics {
         tempVector.x *= e1;
         tempVector.y *= e1;
         // 接触法向量的速度标量
-        let up = tielifa.Vector2.dot(tempVector, n);
+        let up = tielifa.Vector2.dot(tempVector, n) + bias;
 
         let part1 = 0;
         let part1t = 0;
@@ -376,10 +392,10 @@ export default class RigidPhysics {
         // }
         tielifa.Vector2.multiplyValue(direction, direction, depth);
         // figureA参考figureB直接移动插入深度
-        figureA.left += direction.x;
-        figureA.top += direction.y;
-        centerA.x += direction.x;
-        centerA.y += direction.y;
+        // figureA.left += direction.x;
+        // figureA.top += direction.y;
+        // centerA.x += direction.x;
+        // centerA.y += direction.y;
 
         //
         // figureB.left -= direction.x * perB;
@@ -392,16 +408,16 @@ export default class RigidPhysics {
         let contactPoint1 = contactPoints[0].vertices[contactPoints[0].index];
         let contactPoint2;
         if (contactPoints[0].figure == figureA.physicsModel) {
-            contactPoint1.x += direction.x;
-            contactPoint1.y += direction.y;
+            // contactPoint1.x += direction.x;
+            // contactPoint1.y += direction.y;
         }
         contactPointsArray.push(contactPoint1);
         if (contactPoints[1] != undefined) {
             contactPoint2 = contactPoints[1].vertices[contactPoints[1].index];
             contactPointsArray.push(contactPoint2);
             if (contactPoints[1].figure == figureA.physicsModel) {
-                contactPoint2.x += direction.x;
-                contactPoint2.y += direction.y;
+                // contactPoint2.x += direction.x;
+                // contactPoint2.y += direction.y;
             }
         }
         return contactPointsArray;
