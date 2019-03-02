@@ -23,6 +23,7 @@ export default class World extends Graph {
         this.showDebug = p['showDebug'] || false;
         this.models = new List();
         this.p1 = {x: 0, y: 0};
+        this.collisionTestedPairs = {};
     }
 
     contactTest() {
@@ -69,7 +70,6 @@ export default class World extends Graph {
             world.uniformGrid.updateRegionsOfFigure(figure);
         }
 
-        let testedPairs = [];
         // let sleeping = figure.isSleeping;
         // if (!sleeping) {
         let regionIds = figure.relatedRegions;
@@ -82,10 +82,15 @@ export default class World extends Graph {
                     continue;
                 }
                 if (f.physicsModel == null) continue;
-                if (isTested(f, figure)) {
+                if (isTested(f, figure, world.collisionTestedPairs)) {
                     continue;
                 }
-                testedPairs.push({s: figure, t: f});
+                let pairs = world.collisionTestedPairs[figure.id];
+                if (pairs == undefined) {
+                    pairs = [];
+                    world.collisionTestedPairs[figure.id] = pairs;
+                }
+                pairs.push(f.id);
                 if (Tools.overlaps(figure.getSelectBounds(), f.getSelectBounds())) {
                     let modelA = physicsModel;
                     let modelB = f.physicsModel;
@@ -96,48 +101,51 @@ export default class World extends Graph {
                         let c = result.contactPoints[0];
                         world.p1.x = c.vertices[c.index].x;
                         world.p1.y = c.vertices[c.index].y;
-                        // let V = Constraint.solve(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
-                        //     , result.contactPoints, result.contactPlane, result.MTV.direction, world.collisionE, result.MTV.minOverlap.value);
-                        // let v1 = {x: figure.velocity.x, y: figure.velocity.y};
-                        // let v2 = {x: f.velocity.x, y: f.velocity.y};
-                        // let w1 = figure.angularVelocity;
-                        // let w2 = f.angularVelocity;
-                        // tielifa.Vector2.plus(figure.velocity, figure.velocity, V.v1);
-                        // figure.x += V.v1.x;
-                        // figure.y += V.v1.y;
-                        // tielifa.Vector2.plus(f.velocity, f.velocity, V.v2);
-                        // f.x += V.v2.x;
-                        // f.y += V.v2.y;
-                        // figure.angularVelocity += V.w1;
-                        // figure.rotate += V.w1 * 180 / Math.PI;
-                        // f.angularVelocity += V.w2;
-
-                        RigidPhysics.solveCollision(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
+                        let V = Constraint.solve(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
                             , result.contactPoints, result.contactPlane, result.MTV.direction, world.collisionE, result.MTV.minOverlap.value);
+
+                        figure.angularVelocity += V.w1;
+                        f.angularVelocity -= V.w2;
+                        tielifa.Vector2.plus(figure.velocity, figure.velocity, V.v1);
+                        tielifa.Vector2.sub(f.velocity, f.velocity, V.v2);
+
+                        figure.x += V.v1.x;
+                        figure.y += V.v1.y;
+                        f.x -= V.v2.x;
+                        f.y -= V.v2.y;
+                        figure.rotate += V.w1 * 180 / Math.PI;
+                        f.rotate -= V.w2 * 180 / Math.PI;
+                        // figure.x += figure.velocity.x;
+                        // figure.y += figure.velocity.y;
+                        // f.x -= f.velocity.x;
+                        // f.y -= f.velocity.y;
+                        // figure.rotate += figure.au * 180 / Math.PI;
+                        // f.rotate -= V.w2 * 180 / Math.PI;
+
+
+                        // RigidPhysics.solveCollision(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
+                        //     , result.contactPoints, result.contactPlane, result.MTV.direction, world.collisionE, result.MTV.minOverlap.value);
                         // // figure.contactable =false;
                     }
                 }
             }
         }
-        // }
 
-
-        testedPairs.length = 0;
-
-        function isTested(figure1, figure2) {
-            for (let i = 0; i < testedPairs.length; i++) {
-                let pair = testedPairs[i];
-                if (pair.s == figure1 && pair.t == figure2) {
-                    return true;
-                }
-                if (pair.s == figure2 && pair.t == figure1) {
-                    return true;
+        function isTested(figure1, figure2, collisionPairs) {
+            let p1 = collisionPairs[figure1.id];
+            if (p1 != undefined) {
+                for (let i = 0; i < p1.length; i++) {
+                    if (p1[i] == figure2.id)
+                        return true;
                 }
             }
-            let pair = {};
-            pair.s = figure1;
-            pair.t = figure2;
-            testedPairs.push(pair);
+            let p2 = collisionPairs[figure2.id];
+            if (p2 != undefined) {
+                for (let i = 0; i < p2.length; i++) {
+                    if (p2[i] == figure1.id)
+                        return true;
+                }
+            }
             return false;
         }
 
@@ -197,6 +205,7 @@ export default class World extends Graph {
     }
 
     update() {
+        this.collisionTestedPairs = {};
         super.update();
     }
 

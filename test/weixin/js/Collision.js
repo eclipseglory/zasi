@@ -46,9 +46,9 @@ export default class Collision extends BaseExample {
         rect.physicsModel = PhysicsModel.createDefaultModel(rect);
 
         let rect1 = new TestRectSpirit({
-            velocity: {x: -1, y: -2},
+            velocity: {x: 0, y: -2},
             rotate: 0,
-            angularVelocity: 0.01,
+            // angularVelocity: 0.01,
             force: {x: 0, y: 0.1},
             x: 200,
             y: 200,
@@ -107,7 +107,7 @@ export default class Collision extends BaseExample {
         border5.physicsModel = PhysicsModel.createRegularTriangleModel(border4);
 
         world.addChild(rect);
-        // world.addChild(rect1);
+        world.addChild(rect1);
         world.addChild(border1);
         world.addChild(border2);
         world.addChild(border3);

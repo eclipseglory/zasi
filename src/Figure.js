@@ -78,6 +78,10 @@ export default class Figure {
         this._tempP4 = new Float32Array(4);
     }
 
+    get id(){
+        return this.Id;
+    }
+
     static get EVENT_TRANSFORM_CHANGED() {
         return EVENT_TRANSFORM_CHANGED;
     }

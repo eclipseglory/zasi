@@ -1,6 +1,7 @@
 import "../../libs/tielifa.min.js";
 import Tools from "../utils/Tools.js";
 
+const MIN_IMPULSE = 0.00001;
 export default class Constraint {
     constructor(p) {
     }
@@ -9,23 +10,20 @@ export default class Constraint {
         // 修正分离法向量，让n和figureA的速度相反：
         let directionNormalize = n;
         let fp = {x: centerB.x - centerA.x, y: centerB.y - centerA.y};
-        let t = {x: -n.y, y: n.x};
         if (tielifa.Vector2.dot(fp, directionNormalize) > 0) {
             directionNormalize.x *= -1;
             directionNormalize.y *= -1;
         }
-        // temp一下figure的速度
-        // let v1 = {x: figureA.velocity.x, y: figureA.velocity.y};
-        // let v2 = {x: figureB.velocity.x, y: figureB.velocity.y};
-        // let w1 = figureA.angularVelocity;
-        // let w2 = figureB.angularVelocity;
-        let contactsArray = [];
-
+        // 这个bias很重要，专门用于修正位置错误的,该值是允许相互插入的深度
+        let bias = 1;
+        bias = Math.max(depth - bias, 0);
+        let beta = -0.1;
+        bias *= beta;
         let V = new Array(contactPoints.length);
-
-        for (let i = 0; i < contactPoints.length; i++) {
+        // 这里我认为多个接触点分别对原有速度进行约束，得到的结果再合成
+        for (let j = 0; j < contactPoints.length; j++) {
             // 把每个碰撞点都有一个横向和纵向冲量和，如果没有，给它重新设定：
-            let vertex = contactPoints[i].vertices[contactPoints[i].index];
+            let vertex = contactPoints[j].vertices[contactPoints[j].index];
             let contactPoint = {x: vertex.x, y: vertex.y, normalImpulseSum: 0, tangentImpulseSum: 0};
             let r1p = new tielifa.Vector2(contactPoint.x - centerA.x, contactPoint.y - centerA.y);
             let r2p = new tielifa.Vector2(contactPoint.x - centerB.x, contactPoint.y - centerB.y);
@@ -39,10 +37,10 @@ export default class Constraint {
             let totalDeltaV2 = {x: 0, y: 0};
             let totalDeltaW1 = 0;
             let totalDeltaW2 = 0;
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 100; i++) {
                 let result = this.process2(v1, v2, w1, w2,
                     figureA.inverseMass, figureB.inverseMass, figureA.inverseInertia, figureB.inverseInertia, r1p, r2p,
-                    n, e, 0, 0);
+                    n, e, bias,contactPoints.length);
 
                 let currentNormalImpulse = result.jn;
                 let currentTangentImpulse = result.jt;
@@ -54,14 +52,14 @@ export default class Constraint {
                 contactPoint.tangentImpulseSum = Tools.clamp(contactPoint.tangentImpulseSum + currentTangentImpulse,
                     -1 * contactPoint.normalImpulseSum, contactPoint.normalImpulseSum);
                 currentTangentImpulse = contactPoint.tangentImpulseSum - temp;
-                if (currentNormalImpulse == 0) {
+                // 当前冲量特别小，近似认为是0，那就说明后续修正速度不会再变化了
+                if (currentNormalImpulse < MIN_IMPULSE || currentNormalImpulse === 0) {
+                    // 摩擦冲量是取决于垂直冲量
+                    currentNormalImpulse = 0;
+                    currentTangentImpulse = 0;
                     break;
                 }
-                let t = {x: -n.y, y: n.x};
-                if (tielifa.Vector2.dot(t, v1) < 0) {
-                    t.x *= -1;
-                    t.y *= -1;
-                }
+                let t = result.t;
                 let tempVector = {x: 0, y: 0};
                 let deltaV1 = {x: 0, y: 0};
                 let deltaV2 = {x: 0, y: 0};
@@ -86,8 +84,8 @@ export default class Constraint {
                 deltaV2.x += tempVector.x;
                 deltaV2.y += tempVector.y;
 
-                v2.x += deltaV2.x;
-                v2.y += deltaV2.y;
+                v2.x -= deltaV2.x;
+                v2.y -= deltaV2.y;
                 totalDeltaV2.x += deltaV2.x;
                 totalDeltaV2.y += deltaV2.y;
 
@@ -98,10 +96,10 @@ export default class Constraint {
 
                 deltaW2 += tielifa.Vector2.cross(r2p, n) * (figureB.inverseInertia * currentNormalImpulse);
                 deltaW2 += tielifa.Vector2.cross(r2p, t) * (figureB.inverseInertia * currentTangentImpulse);
-                w2 += deltaW2;
+                w2 -= deltaW2;
                 totalDeltaW2 += deltaW2;
             }
-            V[i] = {v1: totalDeltaV1, v2: totalDeltaV2, w1: totalDeltaW1, w2: totalDeltaW2};
+            V[j] = {v1: totalDeltaV1, v2: totalDeltaV2, w1: totalDeltaW1, w2: totalDeltaW2};
         }
         let result;
         let deltaV1 = {x: 0, y: 0};
@@ -122,15 +120,8 @@ export default class Constraint {
         // return V;
     }
 
-    process1(linearVelocity1, linearVelocity2, angularVelocity1, angularVelocity2,
-             inverseMass1, inverseMass2, inverseInertia1, inverseInertia2,
-             rotatePoint1, rotatePoint2, contactPoints, n, e, depth) {
-
-    }
-
-
     static process2(linearVelocity1, linearVelocity2, angularVelocity1, angularVelocity2,
-                    inverseMass1, inverseMass2, inverseInertia1, inverseInertia2, r1p, r2p, n, e, totalContacts, bias) {
+                    inverseMass1, inverseMass2, inverseInertia1, inverseInertia2, r1p, r2p, n, e, bias,contactPointsNum) {
 
         //  记住公式：
         // lambda = -(Jv+b)/JM^-1J^T
@@ -161,11 +152,9 @@ export default class Constraint {
         // lambda = - (Jv + b)/A
         // 注意这个Jv ， 即：[-n , - r1p x n,n , r2p x n] dot [v1,w1,v2,w2]，结果就是在撞击点的相对速度
         // 所以最后计算出来的lambda其实就是基于冲量碰撞速度计算中的冲量！！
-        let t = new tielifa.Vector2(-n.y, n.x);
-        if (tielifa.Vector2.dot(t, linearVelocity1) < 0) {
-            t.x *= -1;
-            t.y *= -1;
-        }
+        contactPointsNum = contactPointsNum || 1;
+        let t = {x: -n.y, y: n.x};
+
         let tempVector = {x: 0, y: 0};
         tempVector.x = -angularVelocity1 * r1p.y;
         tempVector.y = angularVelocity1 * r1p.x;
@@ -178,9 +167,13 @@ export default class Constraint {
         tempVector.x = tempVector.x + linearVelocity2.x;
         tempVector.y = tempVector.y + linearVelocity2.y;
 
-
         tempVector.x = x1 - tempVector.x;
         tempVector.y = y1 - tempVector.y;
+
+        if (tielifa.Vector2.dot(t, tempVector) < 0) {
+            t.x *= -1;
+            t.y *= -1;
+        }
 
         // 横向速度大小(标量)
         let tSpeed = tielifa.Vector2.dot(tempVector, t);
@@ -189,7 +182,7 @@ export default class Constraint {
         tempVector.x *= e1;
         tempVector.y *= e1;
         // 接触法向量的速度标量
-        let up = tielifa.Vector2.dot(tempVector, n) + bias;
+        let up = tielifa.Vector2.dot(tempVector, n);
 
         let part1 = 0;
         let part1t = 0;
@@ -211,16 +204,19 @@ export default class Constraint {
         }
         let inverseMassSum = inverseMass2 + inverseMass1;
         let bottom1 = part1 + part2 + inverseMassSum;
-        let pn = bottom1;
+        // 这里因为多个接触点，将质量评价分一下，也就是说冲量公式的分母要除以接触点个数
+        let pn = bottom1 * contactPointsNum;
         let j = up / pn;
         let bottom2 = part1t + part2t + inverseMassSum;
-        let pt = bottom2;
+        let pt = bottom2 * contactPointsNum;
         let jt = tSpeed / pt;
-        j = Math.max(j, 0);
+        // 允许有负的冲量，放在后面进行叠加冲量
+        // j = Math.max(j, 0);
+        // 参考2014 GDC Erin说的加入一个bias修正位置错误
+        j -= bias;
         let friction = 1;
         let fn = j * friction;
         jt = Tools.clamp(jt, -1 * fn, fn);
-        return {jn: j, jt: jt};
-
+        return {jn: j, jt: jt, t: t};
     }
 }

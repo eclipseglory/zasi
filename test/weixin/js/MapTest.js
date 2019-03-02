@@ -28,7 +28,7 @@ export default class MapTest extends BaseExample {
     run(imageBasePath) {
         imageBasePath = imageBasePath || '';
         let webgl = this.canvas;
-        let graph = new World(webgl, {e: 0, showDebug: true});
+        let graph = new World(webgl, {e: 0.1, showDebug: false});
         let figureImage = new ImageFigure();
         graph.loadImage('background', imageBasePath + 'images/blue_grass.png', {
             success: function (texture) {
@@ -58,7 +58,7 @@ export default class MapTest extends BaseExample {
             mass :36
         });
         let rect1 = this.rect;
-        rect1.physicsModel = PhysicsModel.createRegularTriangleModel(rect1);
+        rect1.physicsModel = PhysicsModel.createRegularHexagonModel(rect1);
         graph.addChild(rect1);
         graph.addChild(map);
         Tools.loadResource(imageBasePath + 'images/tiledmap0.json', {

@@ -5,6 +5,10 @@ let impulseIterateCount = 5;
 let minImpulseValue = 0.00001;
 const RADIAN_TO_ANGEL_CONST = 180 / Math.PI;
 const ANGEL_TO_RADIAN_CONST = Math.PI / 180;
+/**
+ * @deprecated
+ * 有些问题，将会被Constraint类替代
+ */
 export default class RigidPhysics {
 
     static get impulseIterateCount() {
@@ -115,7 +119,6 @@ export default class RigidPhysics {
         if (contactPoints instanceof Array) {
             contactNum = contactPoints.length;
         }
-        let t = new tielifa.Vector2(-n.y, n.x);
         let im = {};
         let bias = 1;
         bias = Math.max(depth - bias, 0);
@@ -128,10 +131,7 @@ export default class RigidPhysics {
             let r2p = new tielifa.Vector2(contactPoint.x - rotatePoint2.x, contactPoint.y - rotatePoint2.y);
             let result1 = this.calculateCurrentContactImpulse(linearVelocity1, linearVelocity2, angularVelocity1, angularVelocity2,
                 inverseMass1, inverseMass2, inverseInertia1, inverseInertia2, r1p, r2p, n, e, 1, bias);
-            if (tielifa.Vector2.dot(t, linearVelocity1) < 0) {
-                t.x *= -1;
-                t.y *= -1;
-            }
+            let t = result1.t;
             let currentNormalImpulse = result1.jn;
             let currentTangentImpulse = result1.jt;
             if (contactPoint.normalImpulseSum == undefined) contactPoint.normalImpulseSum = 0;
@@ -181,11 +181,7 @@ export default class RigidPhysics {
         // 计算接触点的相对速度Vrep , 公式：Vrp = V + WxRrp; 把接触点的角速度换成线速度再和物体线速度相加
         // W x R =  (−W Ry, W Rx, 0)
         // 接触面横向向量：
-        let t = new tielifa.Vector2(-n.y, n.x);
-        if (tielifa.Vector2.dot(t, linearVelocity1) < 0) {
-            t.x *= -1;
-            t.y *= -1;
-        }
+        let t = {x: -n.y, y: n.x};
         let tempVector = {x: 0, y: 0};
         tempVector.x = -angularVelocity1 * r1p.y;
         tempVector.y = angularVelocity1 * r1p.x;
@@ -201,6 +197,11 @@ export default class RigidPhysics {
 
         tempVector.x = x1 - tempVector.x;
         tempVector.y = y1 - tempVector.y;
+
+        if (tielifa.Vector2.dot(t, tempVector) < 0) {
+            t.x *= -1;
+            t.y *= -1;
+        }
 
         // 横向速度大小(标量)
         let tSpeed = tielifa.Vector2.dot(tempVector, t);
@@ -240,7 +241,7 @@ export default class RigidPhysics {
         let friction = 1;
         let fn = j * friction;
         jt = Tools.clamp(jt, -1 * fn, fn);
-        return {jn: j, jt: jt};
+        return {jn: j, jt: jt, t: t};
     }
 
     static updateCollisionDirectionAndContacts(figureA, figureB, centerA, centerB, contactPoints, contactPlanes, n, depth) {
