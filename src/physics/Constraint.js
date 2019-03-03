@@ -1,12 +1,14 @@
 import "../../libs/tielifa.min.js";
 import Tools from "../utils/Tools.js";
 
-const MIN_IMPULSE = 0.00001;
+const MIN_IMPULSE = 0.00001; // 近似认为冲量为0的最小值
+const ITERATE_MAX_TIME = 10; // 速度修正迭代的最大次数
 export default class Constraint {
     constructor(p) {
     }
 
-    static solve(figureA, figureB, centerA, centerB, verticesA, verticesB, contactPoints, contactPlanes, n, e, depth) {
+    static solve(figureA, figureB, centerA, centerB, verticesA, verticesB, contactPoints, contactPlanes,
+                 n, elastic, friction, depth, slop, beta) {
         // 修正分离法向量，让n和figureA的速度相反：
         let directionNormalize = n;
         let fp = {x: centerB.x - centerA.x, y: centerB.y - centerA.y};
@@ -14,13 +16,15 @@ export default class Constraint {
             directionNormalize.x *= -1;
             directionNormalize.y *= -1;
         }
-        // 这个bias很重要，专门用于修正位置错误的,该值是允许相互插入的深度
-        let bias = 1;
-        bias = Math.max(depth - bias, 0);
-        let beta = -0.1;
+        if (slop == undefined)
+            slop = 1;
+        if (beta == undefined)
+            beta = 0.2;
+        let bias = Math.max(depth - slop, 0);
         bias *= beta;
         let V = new Array(contactPoints.length);
-        // 这里我认为多个接触点分别对原有速度进行约束，得到的结果再合成
+        // 这里我认为多个接触点分别对原有速度进行约束，得到的结果再合成，但要注意计算冲量的时候质量是平均的，
+        // 也就是冲量计算公式的分母要除以接触点数量
         for (let j = 0; j < contactPoints.length; j++) {
             // 把每个碰撞点都有一个横向和纵向冲量和，如果没有，给它重新设定：
             let vertex = contactPoints[j].vertices[contactPoints[j].index];
@@ -32,15 +36,16 @@ export default class Constraint {
             let w1 = figureA.angularVelocity;
             let w2 = figureB.angularVelocity;
             // 计算该碰撞点的冲量（横向和纵向）
-            // 迭代次数为5次(Erin说他的box2d用5次就能修正)，每次都修正冲量值
+            // 最大迭代次数为10次，实际上可能大于10次，这里只做近似，每次都修正冲量值
             let totalDeltaV1 = {x: 0, y: 0};
             let totalDeltaV2 = {x: 0, y: 0};
             let totalDeltaW1 = 0;
             let totalDeltaW2 = 0;
-            for (let i = 0; i < 100; i++) {
-                let result = this.process2(v1, v2, w1, w2,
+            for (let i = 0; i < ITERATE_MAX_TIME; i++) {
+
+                let result = this.computeImpulse(v1, v2, w1, w2,
                     figureA.inverseMass, figureB.inverseMass, figureA.inverseInertia, figureB.inverseInertia, r1p, r2p,
-                    n, e, bias,contactPoints.length);
+                    n, elastic, friction, bias, contactPoints.length);
 
                 let currentNormalImpulse = result.jn;
                 let currentTangentImpulse = result.jt;
@@ -101,7 +106,6 @@ export default class Constraint {
             }
             V[j] = {v1: totalDeltaV1, v2: totalDeltaV2, w1: totalDeltaW1, w2: totalDeltaW2};
         }
-        let result;
         let deltaV1 = {x: 0, y: 0};
         let deltaV2 = {x: 0, y: 0};
         let deltaW1 = 0;
@@ -117,41 +121,30 @@ export default class Constraint {
             deltaW2 += dv.w2;
         }
         return {v1: deltaV1, v2: deltaV2, w1: deltaW1, w2: deltaW2};
-        // return V;
     }
 
-    static process2(linearVelocity1, linearVelocity2, angularVelocity1, angularVelocity2,
-                    inverseMass1, inverseMass2, inverseInertia1, inverseInertia2, r1p, r2p, n, e, bias,contactPointsNum) {
+    /**
+     * 公式：lambda = -(Jv+b)/JM^-1J^T
+     * 找到J，lambda就是冲量
+     * @param linearVelocity1
+     * @param linearVelocity2
+     * @param angularVelocity1
+     * @param angularVelocity2
+     * @param inverseMass1
+     * @param inverseMass2
+     * @param inverseInertia1
+     * @param inverseInertia2
+     * @param r1p
+     * @param r2p
+     * @param n
+     * @param e
+     * @param bias
+     * @param contactPointsNum
+     * @returns {{jn: number, t: {x: number, y: *}, jt: (*|*|*)}}
+     */
+    static computeImpulse(linearVelocity1, linearVelocity2, angularVelocity1, angularVelocity2,
+                          inverseMass1, inverseMass2, inverseInertia1, inverseInertia2, r1p, r2p, n, e, friction, bias, contactPointsNum) {
 
-        //  记住公式：
-        // lambda = -(Jv+b)/JM^-1J^T
-        // M^-1是质量导数矩阵，J是雅克比行列式，b是bias(计算方法参考之前基于冲量的那个类)
-        // v是速度向量组：[va,wa,vb,wb]
-        // 冲量P = J^T lambda
-        // V' = V + M^-1 P
-        // jacobian = [-n , - r1p x n,n , r2p x n]
-        // r x n:
-        // v = [v1,w1,v2,w2]
-        // 设 JM^-1J^T 为 A :
-
-        // J dot M^-1 :
-        // [-n , - r1n,n ,r2n] dot [ 1/m1 , 0,0,0
-        //                              0,1/I1,0,0
-        //                              0,0,1/m2,0
-        //                              0,0,0,1/I2]
-        // 所以算出来：
-        // part1 =  [-n/m1, -r1n/I1, n/m2, r2n/I2]
-        // part1 dot J^T:
-        // part2 = -n/m1 dot (-n) + -r1n/I1 dot (-r1n) + n/m2 dot n + r2n/I2 dot r2n
-        // 因为n是单位向量 n dot n = 1;
-        // r1n dot r1n = [0+0+(r1p.x*n.y - r1p.y*n.x)^2] , r1p.x*n.y - r1p.y*n.x在就是二维向量的叉乘，
-        // 所以 r1n dot r1n 在二维中相当于： (rxn)^2 ：
-        // A = 1/m1 + 1/m2 + (r1 x n)*(r1 x n )/I1 + (r2 x n)*(r2 x n )/I2
-        // 这个就是冲量计算公式的分母啊
-        // lambda = -(Jv+b)/JM^-1J^T
-        // lambda = - (Jv + b)/A
-        // 注意这个Jv ， 即：[-n , - r1p x n,n , r2p x n] dot [v1,w1,v2,w2]，结果就是在撞击点的相对速度
-        // 所以最后计算出来的lambda其实就是基于冲量碰撞速度计算中的冲量！！
         contactPointsNum = contactPointsNum || 1;
         let t = {x: -n.y, y: n.x};
 
@@ -204,7 +197,7 @@ export default class Constraint {
         }
         let inverseMassSum = inverseMass2 + inverseMass1;
         let bottom1 = part1 + part2 + inverseMassSum;
-        // 这里因为多个接触点，将质量评价分一下，也就是说冲量公式的分母要除以接触点个数
+        // 这里因为多个接触点，将质量平均分一下，也就是说冲量公式的分母要乘以接触点个数
         let pn = bottom1 * contactPointsNum;
         let j = up / pn;
         let bottom2 = part1t + part2t + inverseMassSum;
@@ -212,9 +205,8 @@ export default class Constraint {
         let jt = tSpeed / pt;
         // 允许有负的冲量，放在后面进行叠加冲量
         // j = Math.max(j, 0);
-        // 参考2014 GDC Erin说的加入一个bias修正位置错误
-        j -= bias;
-        let friction = 1;
+        // 参考2014 GDC Erin说的加入一个bias修正位置错误,真他妈好用~
+        j += bias;
         let fn = j * friction;
         jt = Tools.clamp(jt, -1 * fn, fn);
         return {jn: j, jt: jt, t: t};

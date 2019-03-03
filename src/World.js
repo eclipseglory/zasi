@@ -14,11 +14,6 @@ export default class World extends Graph {
         let gridRow = p['gridRow'] || 10;
         let gridColumn = p['gridColumn'] || 10;
         super(canvas);
-        if (p['e'] != undefined) {
-            this.collisionE = p['e'];
-        } else {
-            this.collisionE = 0;
-        }
         this.uniformGrid = new UniformGrid(gridRow, gridColumn, this.width, this.height);
         this.showDebug = p['showDebug'] || false;
         this.models = new List();
@@ -98,11 +93,13 @@ export default class World extends Graph {
                     modelB.applyCurrentTransform(f.absoluteRotate, f.getRelativeTransformMatrix(world));
                     let result = SAT.collisionTest(modelA, modelB);
                     if (result.collision) {
+                        let elastic = Math.max(modelA.elastic, modelB.elastic);
+                        let friction = Math.min(modelA.friction, modelB.friction);
                         let c = result.contactPoints[0];
                         world.p1.x = c.vertices[c.index].x;
                         world.p1.y = c.vertices[c.index].y;
                         let V = Constraint.solve(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
-                            , result.contactPoints, result.contactPlane, result.MTV.direction, world.collisionE, result.MTV.minOverlap.value);
+                            , result.contactPoints, result.contactPlane, result.MTV.direction, elastic, friction, result.MTV.minOverlap.value);
 
                         figure.angularVelocity += V.w1;
                         f.angularVelocity -= V.w2;

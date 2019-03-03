@@ -22,6 +22,16 @@ export default class PhysicsModel {
         this.center = null;
         this._mass = 1;
         this.inertia;
+        if (p['friction'] != undefined) {
+            this.friction = p['friction'];
+        } else {
+            this.friction = 1;
+        }
+        if (p['elastic'] != undefined) {
+            this.elastic = p['elastic'];
+        } else {
+            this.elastic = 0;
+        }
     }
 
     get mass() {
@@ -52,8 +62,8 @@ export default class PhysicsModel {
         return this.inertia;
     }
 
-    static createDefaultModel(figure) {
-        let m = new PhysicsModel({type: 0});
+    static createDefaultModel(figure,property) {
+        let m = new PhysicsModel(property);
         let vertices = [];
         vertices.push({x: 0, y: 0});
         vertices.push({x: figure.width, y: 0});
@@ -63,8 +73,8 @@ export default class PhysicsModel {
         return m;
     }
 
-    static createRegularTriangleModel(figure) {
-        let m = new PhysicsModel({type: 0});
+    static createRegularTriangleModel(figure,property) {
+        let m = new PhysicsModel(property);
         let vertices = [];
         vertices.push({x: figure.width / 2, y: 0});
         vertices.push({x: 0, y: figure.height});
@@ -73,8 +83,8 @@ export default class PhysicsModel {
         return m;
     }
 
-    static createRegularHexagonModel(figure) {
-        let m = new PhysicsModel({type: 0});
+    static createRegularHexagonModel(figure,property) {
+        let m = new PhysicsModel(property);
         let vertices = [];
         vertices.push({x: figure.width / 3, y: 0});
         vertices.push({x: figure.width / 3 * 2, y: 0});
