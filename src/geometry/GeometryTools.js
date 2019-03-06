@@ -1,4 +1,3 @@
-import '../../libs/tielifa.min.js';
 import Tools from "../utils/Tools.js";
 
 export default class GeometryTools {

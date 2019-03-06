@@ -1,6 +1,5 @@
 import Tools from "../utils/Tools.js";
 import Point2D from "../common/Point2D.js";
-import '../../libs/tielifa.min.js';
 import EntityFigure from "../EntityFigure.js";
 
 let _velocity = Symbol('速度');
@@ -22,8 +21,7 @@ let _move = Symbol('是否运动，如果为false则不会根据其速度重新�
 let _paused = Symbol('暂停运动');
 
 const DELTA_TIME = 1;//1000 / 60;
-const RADIAN_TO_ANGEL_CONST = 180 / Math.PI;
-const ANGEL_TO_RADIAN_CONST = Math.PI / 180;
+// const RADIAN_TO_ANGEL_CONST = 180 / Math.PI;
 const BEFORE_CALCULATEPOSE_EVENT = 'beforeCalculatePose';
 const AFTER_CALCULATEPOSE_EVENT = 'afterCalculatePose';
 const CEVENT = {name: null, figure: null};
@@ -242,8 +240,7 @@ export default class AbstractSpirit extends EntityFigure {
         }
         this.angularVelocity = currentAngularVelocity;
         this[_preRotation] = this.rotate;
-        this.rotate += this.angularVelocity * DELTA_TIME * RADIAN_TO_ANGEL_CONST;
-        let that = this;
+        this.rotate += this.angularVelocity * DELTA_TIME * Tools.YIBAIBADIVPI;
         if (sleepRotate && !this[_sleepRotate]) {
             this.fireEvent('sleepRotate', {
                 source: this
@@ -258,7 +255,7 @@ export default class AbstractSpirit extends EntityFigure {
             this.fireEvent('sleepY', {source: this});
             this[_sleepy] = true;
         }
-        CEVENT.name = AFTER_CALCULATEPOSE_EVENT
+        CEVENT.name = AFTER_CALCULATEPOSE_EVENT;
         this.fireEvent(AFTER_CALCULATEPOSE_EVENT, CEVENT);
     }
 
@@ -272,13 +269,6 @@ export default class AbstractSpirit extends EntityFigure {
         this[_sleepRotate] = false;
         this[_move] = true;
         this[_paused] = false;
-        // let world = this.getGraph();
-        // if (world != undefined) {
-        //     if (world.monitorSpiritBeforeMove)
-        //         this.addEventListener(BEFORE_CALCULATEPOSE_EVENT, world.monitorSpiritBeforeMove);
-        //     if (world.monitorSpiritAfterMove)
-        //         this.addEventListener(AFTER_CALCULATEPOSE_EVENT, world.monitorSpiritAfterMove);
-        // }
     }
 
     get paused() {
@@ -298,12 +288,5 @@ export default class AbstractSpirit extends EntityFigure {
         this[_angularVelocity] = 0;
         this[_force].x = this[_force].y = 0;
         this[_paused] = false;
-        let world = this.getGraph();
-        // if (world != undefined) {
-        //     if (world.monitorSpiritBeforeMove)
-        //         this.removeEventListener(BEFORE_CALCULATEPOSE_EVENT, world.monitorSpiritBeforeMove);
-        //     if (world.monitorSpiritAfterMove)
-        //         this.removeEventListener(AFTER_CALCULATEPOSE_EVENT, world.monitorSpiritAfterMove);
-        // }
     }
 }

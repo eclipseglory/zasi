@@ -1,8 +1,6 @@
-import EntityFigure from "../EntityFigure.js";
 import Figure from "../Figure.js";
 import PhysicsModel from "../physics/PhysicsModel.js";
 import AbstractSpirit from "../spirit/AbstractSpirit.js";
-import TestRectSpirit from "../spirit/TestRectSpirit.js";
 
 let _data = Symbol('地图数据');
 export default class TileMap extends Figure {

@@ -1,5 +1,4 @@
 import Tools from "../utils/Tools.js";
-import '../../libs/tielifa.min.js'
 
 let impulseIterateCount = 5;
 let minImpulseValue = 0.00001;
@@ -53,9 +52,9 @@ export default class RigidPhysics {
             if (Tools.equals(figure.velocity.x, 0)) figure.velocity.x = 0;
             if (Tools.equals(figure.velocity.y, 0)) figure.velocity.y = 0;
             if (Math.abs(figure.angularVelocity) < 0.0001) figure.angularVelocity = 0;
-            figure.x += sign * deltaLinearVelocity.x;
-            figure.y += sign * deltaLinearVelocity.y;
-            figure.rotate += sign * deltaAngularVelocity * RADIAN_TO_ANGEL_CONST;
+            // figure.x += sign * deltaLinearVelocity.x;
+            // figure.y += sign * deltaLinearVelocity.y;
+            // figure.rotate += sign * deltaAngularVelocity * RADIAN_TO_ANGEL_CONST;
         }
 
 
@@ -393,10 +392,10 @@ export default class RigidPhysics {
         // }
         tielifa.Vector2.multiplyValue(direction, direction, depth);
         // figureA参考figureB直接移动插入深度
-        // figureA.left += direction.x;
-        // figureA.top += direction.y;
-        // centerA.x += direction.x;
-        // centerA.y += direction.y;
+        figureA.left += direction.x;
+        figureA.top += direction.y;
+        centerA.x += direction.x;
+        centerA.y += direction.y;
 
         //
         // figureB.left -= direction.x * perB;

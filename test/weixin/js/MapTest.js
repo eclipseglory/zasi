@@ -48,17 +48,17 @@ export default class MapTest extends BaseExample {
         this.rect = new TestRectSpirit({
             velocity: {x: -0.1, y: -2},
             rotate: 0,
-            angularVelocity: 0.01,
-            force: {x: 0, y: 3.6},
+            // angularVelocity: 0.01,
+            force: {x: 0, y: 0.1},
             x: 200,
             y: 200,
             width: 50,
             height: (50 / 2) * Math.tan(60 * Math.PI / 180),
-            color: 'yellow',
-            mass :36
+            color: '#777777',
+            mass: 1
         });
         let rect1 = this.rect;
-        rect1.physicsModel = PhysicsModel.createRegularHexagonModel(rect1);
+        rect1.physicsModel = PhysicsModel.createRegularHexagonModel(rect1, {elastic: 0.1, friction: 0.9});
         graph.addChild(rect1);
         graph.addChild(map);
         Tools.loadResource(imageBasePath + 'images/tiledmap0.json', {

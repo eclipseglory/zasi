@@ -3,7 +3,6 @@ import AbstractSpirit from "./spirit/AbstractSpirit.js";
 import UniformGrid from "./utils/UniformGrid.js";
 import Tools from "./utils/Tools.js";
 import SAT from "./geometry/SAT.js";
-import RigidPhysics from "./physics/RigidPhysics.js";
 import List from "./common/List.js";
 import Figure from "./Figure.js";
 import Constraint from "./physics/Constraint.js";
@@ -19,6 +18,7 @@ export default class World extends Graph {
         this.models = new List();
         this.p1 = {x: 0, y: 0};
         this.collisionTestedPairs = {};
+        this.refreshCount = 0;
     }
 
     contactTest() {
@@ -59,7 +59,6 @@ export default class World extends Graph {
         let world = figure.getGraph();
         let changed = figure.isTransformChanged;
         // 没有发生变换的图形也不管，只以动的图形为主，不同的图形为参考
-        physicsModel.applyCurrentTransform(figure.absoluteRotate, figure.getRelativeTransformMatrix(world));
         if (!changed) return;
         if (world.uniformGrid) {
             world.uniformGrid.updateRegionsOfFigure(figure);
@@ -76,16 +75,38 @@ export default class World extends Graph {
                 if (f == figure) {
                     continue;
                 }
-                if (f.physicsModel == null) continue;
+                if (f.physicsModel == null || !f.contactable) continue;
                 if (isTested(f, figure, world.collisionTestedPairs)) {
                     continue;
                 }
                 let pairs = world.collisionTestedPairs[figure.id];
+                if (pairs == undefined) pairs = world.collisionTestedPairs[f.id];
+                let collisionRecord = undefined;
                 if (pairs == undefined) {
-                    pairs = [];
+                    pairs = {};
                     world.collisionTestedPairs[figure.id] = pairs;
+                    pairs[f.id] = {
+                        warmNormalImpulse: 0,
+                        warmTangentImpulse: 0,
+                        tested: true,
+                        refreshCount: world.refreshCount
+                    };
+                    collisionRecord = pairs[f.id];
+                } else {
+                    let r = pairs[f.id];
+                    if (r == undefined) {
+                        pairs[f.id] = {
+                            warmNormalImpulse: 0,
+                            warmTangentImpulse: 0,
+                            tested: true,
+                            refreshCount: world.refreshCount
+                        };
+                        collisionRecord = pairs[f.id];
+                    } else {
+                        collisionRecord = pairs[f.id];
+                        collisionRecord.tested = true;
+                    }
                 }
-                pairs.push(f.id);
                 if (Tools.overlaps(figure.getSelectBounds(), f.getSelectBounds())) {
                     let modelA = physicsModel;
                     let modelB = f.physicsModel;
@@ -93,36 +114,76 @@ export default class World extends Graph {
                     modelB.applyCurrentTransform(f.absoluteRotate, f.getRelativeTransformMatrix(world));
                     let result = SAT.collisionTest(modelA, modelB);
                     if (result.collision) {
+                        let refreshId = collisionRecord.refreshCount;
+                        refreshId++;
+                        if (refreshId >= 10000) {
+                            refreshId = 0;
+                        }
+                        let warmNormalImpulse = 0;
+                        let warmTangentImpulse = 0;
+                        if (refreshId == world.refreshCount) {
+                            // warmNormalImpulse = collisionRecord.warmNormalImpulse;
+                            // warmTangentImpulse = collisionRecord.warmTangentImpulse;
+                        }
+                        // console.log(warmNormalImpulse, warmTangentImpulse);
                         let elastic = Math.max(modelA.elastic, modelB.elastic);
                         let friction = Math.min(modelA.friction, modelB.friction);
-                        let c = result.contactPoints[0];
-                        world.p1.x = c.vertices[c.index].x;
-                        world.p1.y = c.vertices[c.index].y;
-                        let V = Constraint.solve(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
-                            , result.contactPoints, result.contactPlane, result.MTV.direction, elastic, friction, result.MTV.minOverlap.value);
-
-                        figure.angularVelocity += V.w1;
-                        f.angularVelocity -= V.w2;
-                        tielifa.Vector2.plus(figure.velocity, figure.velocity, V.v1);
-                        tielifa.Vector2.sub(f.velocity, f.velocity, V.v2);
-
-                        figure.x += V.v1.x;
-                        figure.y += V.v1.y;
-                        f.x -= V.v2.x;
-                        f.y -= V.v2.y;
-                        figure.rotate += V.w1 * 180 / Math.PI;
-                        f.rotate -= V.w2 * 180 / Math.PI;
-                        // figure.x += figure.velocity.x;
-                        // figure.y += figure.velocity.y;
-                        // f.x -= f.velocity.x;
-                        // f.y -= f.velocity.y;
-                        // figure.rotate += figure.au * 180 / Math.PI;
-                        // f.rotate -= V.w2 * 180 / Math.PI;
-
 
                         // RigidPhysics.solveCollision(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
-                        //     , result.contactPoints, result.contactPlane, result.MTV.direction, world.collisionE, result.MTV.minOverlap.value);
-                        // // figure.contactable =false;
+                        //     , result.contactPoints, result.contactPlane, result.MTV.direction, 0, friction, result.MTV.minOverlap.value);
+                        let deltaVelocity = Constraint.solve(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
+                            , result.contactPoints, result.contactPlane, result.MTV.direction, 0, friction, result.MTV.minOverlap.value,
+                            1, 0.2, warmNormalImpulse, warmTangentImpulse);
+                        let dw1 = figure.angularVelocity - deltaVelocity.w1;
+                        figure.angularVelocity = deltaVelocity.w1;
+                        if(Tools.equals(figure.angularVelocity,0)){
+                            figure.angularVelocity = 0;
+                        }
+
+                        let dw2 = f.angularVelocity - deltaVelocity.w2;
+                        f.angularVelocity = deltaVelocity.w2;
+                        if(Tools.equals(f.angularVelocity,0)){
+                            f.angularVelocity = 0;
+                        }
+
+                        let dx1 = figure.velocity.x - deltaVelocity.v1.x;
+                        let dy1 = figure.velocity.y - deltaVelocity.v1.y;
+                        figure.velocity.x = deltaVelocity.v1.x;
+                        if(Tools.equals(figure.velocity.x,0)){
+                            figure.velocity.x = 0;
+                        }
+                        figure.velocity.y = deltaVelocity.v1.y;
+                        if(Tools.equals(figure.velocity.y,0)){
+                            figure.velocity.y = 0;
+                        }
+
+                        let dx2 = f.velocity.x - deltaVelocity.v2.x;
+                        let dy2 = f.velocity.y - deltaVelocity.v2.y;
+                        f.velocity.x = deltaVelocity.v2.x;
+                        if(Tools.equals(f.velocity.x,0)){
+                            f.velocity.x = 0;
+                        }
+                        f.velocity.y = deltaVelocity.v2.y;
+                        if(Tools.equals(f.velocity.y,0)){
+                            f.velocity.y = 0;
+                        }
+
+                        // 这里减掉即将产生的加速度带来的速度变化
+                        // figure.velocity.x -= figure.acceleration.x;
+                        // figure.velocity.y -= figure.acceleration.y;
+                        // figure.angularVelocity -= figure.angularAcceleration;
+                        // f.velocity.x -= f.acceleration.x;
+                        // f.velocity.y -= f.acceleration.y;
+                        // f.angularVelocity -= f.angularAcceleration;
+                        // figure.x -= dx1;
+                        // figure.y -= dy1;
+                        // f.x -= dx2;
+                        // f.y -= dy2;
+                        // figure.rotate -= dw1 * Tools.YIBAIBADIVPI;
+                        // f.rotate -= dw2 * Tools.YIBAIBADIVPI;
+                        collisionRecord.refreshCount = world.refreshCount;
+                        collisionRecord.warmNormalImpulse = deltaVelocity.warmNormalImpulse;
+                        collisionRecord.warmTangentImpulse = deltaVelocity.warmTangentImpulse;
                     }
                 }
             }
@@ -131,16 +192,16 @@ export default class World extends Graph {
         function isTested(figure1, figure2, collisionPairs) {
             let p1 = collisionPairs[figure1.id];
             if (p1 != undefined) {
-                for (let i = 0; i < p1.length; i++) {
-                    if (p1[i] == figure2.id)
-                        return true;
+                let result = p1[figure2.id];
+                if (result != undefined) {
+                    return result.tested;
                 }
             }
             let p2 = collisionPairs[figure2.id];
             if (p2 != undefined) {
-                for (let i = 0; i < p2.length; i++) {
-                    if (p2[i] == figure1.id)
-                        return true;
+                let result = p2[figure1.id];
+                if (result != undefined) {
+                    return result.tested;
                 }
             }
             return false;
@@ -202,8 +263,17 @@ export default class World extends Graph {
     }
 
     update() {
-        this.collisionTestedPairs = {};
+        for (let p in this.collisionTestedPairs) {
+            let pairs = this.collisionTestedPairs[p];
+            for (let p1 in pairs) {
+                pairs[p1].tested = false;
+            }
+        }
         super.update();
+        this.refreshCount++;
+        if (this.refreshCount >= 10000) {
+            this.refreshCount = 0;
+        }
     }
 
     _debug_drawPhysicsModel() {

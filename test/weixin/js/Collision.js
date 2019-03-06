@@ -7,23 +7,41 @@ export default class Collision extends BaseExample {
     constructor(c) {
         super(c);
         this.rect1;
+        this.world;
     }
 
     ontouch(evt, x, y) {
-        let bounds = this.rect1.getSelectBounds();
-        let center = {x: bounds.left + bounds.width / 2, y: bounds.top + bounds.height / 2};
-        let speed = 2;
-        let v = {x: x - center.x, y: y - center.y};
-        let length = v.x * v.x + v.y * v.y;
-        length = Math.sqrt(length);
-        let vn = {x: v.x / length, y: v.y / length};
-        this.rect1.velocity.x += vn.x * speed;
-        this.rect1.velocity.y += vn.y * speed;
-
+        let figure = new TestRectSpirit({
+            velocity: {x: 0, y: 0},
+            elastic: 0,
+            rotate: 180,
+            angularVelocity: 0.01,
+            force: {x: 0, y: 0.1},
+            x: x - 25,
+            y: y - 25,
+            width: 50,
+            height: 50
+        });
+        let r = Math.floor(Math.random() * 255);
+        let g = Math.floor(Math.random() * 255);
+        let b = Math.floor(Math.random() * 255);
+        figure.color = "rgb(" + r + "," + g + "," + b + ")";
+        let random = Math.floor(Math.random() * 3);
+        // random = 2:
+        if (random == 0) {
+            figure.physicsModel = PhysicsModel.createDefaultModel(figure);
+        } else if (random == 1) {
+            figure.physicsModel = PhysicsModel.createRegularHexagonModel(figure);
+        } else if (random == 2) {
+            figure.physicsModel = PhysicsModel.createRegularTriangleModel(figure);
+        }
+        figure.startMove();
+        this.world.addChild(figure);
     }
 
     run(imageBasePath) {
-        let world = new World(this.canvas, {enableDepthTest: true, e: 0, showDebug: true});
+        this.world = new World(this.canvas, {enableDepthTest: true, e: 0, showDebug: true});
+        let world = this.world;
         if (typeof wx !== 'undefined') {
             let scale = wx.getSystemInfoSync().pixelRatio;
             console.log(scale);
@@ -106,13 +124,13 @@ export default class Collision extends BaseExample {
         });
         border5.physicsModel = PhysicsModel.createRegularTriangleModel(border4);
 
-        world.addChild(rect);
-        world.addChild(rect1);
+        // world.addChild(rect);
+        // world.addChild(rect1);
         world.addChild(border1);
         world.addChild(border2);
         world.addChild(border3);
         world.addChild(border4);
-        world.addChild(border5);
+        // world.addChild(border5);
         world.startWorld();
     }
 }

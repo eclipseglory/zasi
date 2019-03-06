@@ -1,7 +1,6 @@
 import Dimension3 from "./common/Dimension3.js";
 import List from "./common/List.js";
 import Tools from "./utils/Tools.js";
-import "../libs/tielifa.min.js";
 
 let _id = Symbol('figure对象的唯一标示');
 let _bounds = Symbol('figure左上角坐标点以及大小的一个数组,0位是x,1位是y,2位是z,3位是width,4位是height');

@@ -1,5 +1,4 @@
 import Figure from "./Figure.js";
-import '../libs/tielifa.min.js';
 import LoopThreadWrapper from "./LoopThreadWrapper.js";
 
 let _paused = Symbol('暂停循环刷新是否已暂停');

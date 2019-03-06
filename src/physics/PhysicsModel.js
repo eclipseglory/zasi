@@ -2,7 +2,6 @@
  * 包含有边，以及边的法向量，质量，转动官能等以及模型类型（多边形或圆形）
  */
 import GeometryTools from "../geometry/GeometryTools.js";
-import "../../libs/tielifa.min.js";
 import Tools from "../utils/Tools.js";
 
 const POLYGON_TYPE = 0;
@@ -30,7 +29,7 @@ export default class PhysicsModel {
         if (p['elastic'] != undefined) {
             this.elastic = p['elastic'];
         } else {
-            this.elastic = 0;
+            this.elastic = 1;
         }
     }
 

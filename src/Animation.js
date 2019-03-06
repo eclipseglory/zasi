@@ -1,4 +1,3 @@
-import LoopThreadWrapper from "./LoopThreadWrapper.js";
 import Figure from "./Figure.js";
 
 let _delay = Symbol("动画延迟开始的时间值");

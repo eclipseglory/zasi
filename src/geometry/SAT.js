@@ -1,5 +1,4 @@
 import Tools from "../utils/Tools.js";
-import '../../libs/tielifa.min.js';
 
 const T_E = 0.001;
 /**
@@ -228,36 +227,6 @@ export default class SAT {
         return out;
     }
 
-    // static getAxis(axes, vertices, existAxis) {
-    //     if (existAxis == undefined) existAxis = [];
-    //     if (axes == undefined) {
-    //         axes = [];
-    //     }
-    //     for (let i = 0; i < vertices.length; i++) {
-    //         let p1 = vertices[i];
-    //         let p2 = vertices[(i + 1) % vertices.length];
-    //         let axis = new Vector2(p2.y - p1.y, p1.x - p2.x);
-    //         let a = Math.atan2(axis.y, axis.x); // 这样计算省去了判断Infinity和-0
-    //         if (sameAxis(existAxis, a)) {
-    //             // 已经存在相同斜率的轴就跳过
-    //             continue;
-    //         }
-    //         existAxis.push(a);
-    //         Vector2.normalize(axis, axis); // 归一化
-    //         axes.push(axis);
-    //     }
-    //
-    //     function sameAxis(existAxis, a) {
-    //         for (let i = 0; i < existAxis.length; i++) {
-    //             if (Tools.equals(a, existAxis[i])) {
-    //                 return true;
-    //             }
-    //         }
-    //         return false;
-    //     }
-    //
-    //     return axes;
-    // }
 
     /**
      * 找出顶点在某轴上的最大和最小投影
