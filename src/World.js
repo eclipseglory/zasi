@@ -121,6 +121,7 @@ export default class World extends Graph {
                         }
                         let warmNormalImpulse = 0;
                         let warmTangentImpulse = 0;
+                        //热启动有问题！
                         if (refreshId == world.refreshCount) {
                             // warmNormalImpulse = collisionRecord.warmNormalImpulse;
                             // warmTangentImpulse = collisionRecord.warmTangentImpulse;
@@ -132,55 +133,49 @@ export default class World extends Graph {
                         // RigidPhysics.solveCollision(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
                         //     , result.contactPoints, result.contactPlane, result.MTV.direction, 0, friction, result.MTV.minOverlap.value);
                         let deltaVelocity = Constraint.solve(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
-                            , result.contactPoints, result.contactPlane, result.MTV.direction, 0, friction, result.MTV.minOverlap.value,
-                            1, 0.2, warmNormalImpulse, warmTangentImpulse);
+                            , result.contactPoints, result.contactPlane, result.MTV.direction, elastic, friction, result.MTV.minOverlap.value,
+                            0, 0.3, warmNormalImpulse, warmTangentImpulse);
                         let dw1 = figure.angularVelocity - deltaVelocity.w1;
                         figure.angularVelocity = deltaVelocity.w1;
-                        if(Tools.equals(figure.angularVelocity,0)){
+                        if (Math.abs(figure.angularVelocity) <= Tools.EPSILON ) {
                             figure.angularVelocity = 0;
                         }
 
                         let dw2 = f.angularVelocity - deltaVelocity.w2;
                         f.angularVelocity = deltaVelocity.w2;
-                        if(Tools.equals(f.angularVelocity,0)){
+                        if (Math.abs(f.angularVelocity) <= Tools.EPSILON ) {
                             f.angularVelocity = 0;
                         }
 
                         let dx1 = figure.velocity.x - deltaVelocity.v1.x;
                         let dy1 = figure.velocity.y - deltaVelocity.v1.y;
                         figure.velocity.x = deltaVelocity.v1.x;
-                        if(Tools.equals(figure.velocity.x,0)){
+                        if (Tools.equals(figure.velocity.x, 0)) {
                             figure.velocity.x = 0;
                         }
                         figure.velocity.y = deltaVelocity.v1.y;
-                        if(Tools.equals(figure.velocity.y,0)){
+                        if (Tools.equals(figure.velocity.y, 0)) {
                             figure.velocity.y = 0;
                         }
 
                         let dx2 = f.velocity.x - deltaVelocity.v2.x;
                         let dy2 = f.velocity.y - deltaVelocity.v2.y;
                         f.velocity.x = deltaVelocity.v2.x;
-                        if(Tools.equals(f.velocity.x,0)){
+                        if (Tools.equals(f.velocity.x, 0)) {
                             f.velocity.x = 0;
                         }
                         f.velocity.y = deltaVelocity.v2.y;
-                        if(Tools.equals(f.velocity.y,0)){
+                        if (Tools.equals(f.velocity.y, 0)) {
                             f.velocity.y = 0;
                         }
 
-                        // 这里减掉即将产生的加速度带来的速度变化
+                        // 为什么我这里直接利用即时速度会出问题？！
                         // figure.velocity.x -= figure.acceleration.x;
                         // figure.velocity.y -= figure.acceleration.y;
                         // figure.angularVelocity -= figure.angularAcceleration;
                         // f.velocity.x -= f.acceleration.x;
                         // f.velocity.y -= f.acceleration.y;
                         // f.angularVelocity -= f.angularAcceleration;
-                        // figure.x -= dx1;
-                        // figure.y -= dy1;
-                        // f.x -= dx2;
-                        // f.y -= dy2;
-                        // figure.rotate -= dw1 * Tools.YIBAIBADIVPI;
-                        // f.rotate -= dw2 * Tools.YIBAIBADIVPI;
                         collisionRecord.refreshCount = world.refreshCount;
                         collisionRecord.warmNormalImpulse = deltaVelocity.warmNormalImpulse;
                         collisionRecord.warmTangentImpulse = deltaVelocity.warmTangentImpulse;

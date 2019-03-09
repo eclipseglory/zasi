@@ -29,7 +29,7 @@ export default class PhysicsModel {
         if (p['elastic'] != undefined) {
             this.elastic = p['elastic'];
         } else {
-            this.elastic = 1;
+            this.elastic = 0;
         }
     }
 

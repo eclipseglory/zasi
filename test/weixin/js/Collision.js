@@ -16,11 +16,12 @@ export default class Collision extends BaseExample {
             elastic: 0,
             rotate: 180,
             angularVelocity: 0.01,
-            force: {x: 0, y: 0.1},
+            force: {x: 0, y: 0.36},
             x: x - 25,
             y: y - 25,
             width: 50,
-            height: 50
+            height: 50,
+            mass:3.6
         });
         let r = Math.floor(Math.random() * 255);
         let g = Math.floor(Math.random() * 255);
@@ -35,6 +36,8 @@ export default class Collision extends BaseExample {
         } else if (random == 2) {
             figure.physicsModel = PhysicsModel.createRegularTriangleModel(figure);
         }
+        figure.physicsModel.elastic = 0.2;
+        // figure.physicsModel.friction = Math.random();
         figure.startMove();
         this.world.addChild(figure);
     }
