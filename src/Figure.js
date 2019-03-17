@@ -56,9 +56,9 @@ export default class Figure {
         this[_opacity] = properties["opacity"] || 1;
         this[_parent] = null;
         this[_methods] = [];
-        if(this[_visible] != undefined){
+        if (this[_visible] != undefined) {
             this[_visible] = properties['visible'];
-        }else{
+        } else {
             this[_visible] = true;
         }
         this[_transformCalculator] = null;
@@ -75,9 +75,12 @@ export default class Figure {
         this._tempP2 = new Float32Array(4);
         this._tempP3 = new Float32Array(4);
         this._tempP4 = new Float32Array(4);
+        this.debugCount = 0;
+        this.selectBoundsUpdated = false;
+        this.selectBounds = {left: 0, top: 0, right: this.width, bottom: this.height, width: 0, height: 0};
     }
 
-    get id(){
+    get id() {
         return this.Id;
     }
 
@@ -152,7 +155,7 @@ export default class Figure {
 
     fireTransformChange(changed) {
         if (changed) {
-            if(!this[_transformChanged]){
+            if (!this[_transformChanged]) {
                 FIGURE_EVENT.figure = this;
                 FIGURE_EVENT.name = EVENT_TRANSFORM_CHANGED;
                 FIGURE_EVENT.property = null;
@@ -183,6 +186,7 @@ export default class Figure {
     }
 
     update(ctx) {
+        this.selectBoundsUpdated = false;
         if (this.width == 0 || this.height == 0) return;
         ctx.save();
         this.beforeDraw(ctx);
@@ -560,7 +564,10 @@ export default class Figure {
 
     getRelativeTransformMatrix(parent) {
         let myMatrix = this.getTransformMatrix();
-        if (parent == this.parent) return myMatrix;
+        if (parent === this.parent) {
+            tielifa.Mat4.copy(myMatrix, this.relativeMatrix);
+            return this.relativeMatrix;
+        }
         let m = this.relativeMatrix;
         tielifa.Mat4.identityMatrix(m);
         if (this.parent != null && this.parent != undefined) {
@@ -595,6 +602,7 @@ export default class Figure {
             let transformX = transformPoint.x;
             let transformY = transformPoint.y;
             let transformZ = transformPoint.z;
+            if (transformZ == undefined) transformZ = 0;
 
             let flag = false;
             if (!(Tools.equals(transformX, 0) && Tools.equals(transformY, 0) && Tools.equals(transformZ, 0))) {
@@ -641,6 +649,7 @@ export default class Figure {
     }
 
     getRelativeBounds(parent) {
+        this.debugCount++;
         let matrix = this.getRelativeTransformMatrix(parent);
         let left = 0;
         let right = this.width;
@@ -710,7 +719,17 @@ export default class Figure {
     }
 
     getSelectBounds() {
-        return this.getRelativeBounds(this.getGraph());
+        if (!this.selectBoundsUpdated) {
+            let bounds = this.getRelativeBounds(this.getGraph());
+            this.selectBounds.left = bounds.left;
+            this.selectBounds.top = bounds.top;
+            this.selectBounds.bottom = bounds.bottom;
+            this.selectBounds.right = bounds.right;
+            this.selectBounds.width = bounds.width;
+            this.selectBounds.height = bounds.height;
+            this.selectBoundsUpdated = true;
+        }
+        return this.selectBounds;
     }
 
 
