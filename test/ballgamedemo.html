@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>这是一个小游戏demo，验证我的物理引擎用</title>
+    <script src="test.js"></script>
+    <script src="./weixin/js/libs/tielifa.min.js"></script>
+    <script src="./weixin/js/libs/zasi.min.js"></script>
+</head>
+<body>
+
+</body>
+<script type="module">
+    import GameDemo from "./weixin/js/GameDemo.js";
+
+    createOneFullCanvas('Demo');
+    let game = new GameDemo(webgl);
+    game.run('weixin/');
+</script>
+</html>
