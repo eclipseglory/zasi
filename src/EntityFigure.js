@@ -1,37 +1,20 @@
 import Figure from "./Figure.js";
 
-let _physicsModel = Symbol('figure的物理模型');
 let _mass = Symbol('质量');
 let _inertia = Symbol('转动惯量');
-let _contactable = Symbol('是否可碰撞，true则会进行碰撞测试，反之不会');
 export default class EntityFigure extends Figure {
     constructor(p) {
         p = p || {};
         super(p);
         if (p['contactable'] != undefined) {
-            this[_contactable] = p['contactable']
+            this.contactable = p['contactable']
         } else
-            this[_contactable] = true;
-        this.physicsModel = p['physicsModel'] || p;
+            this.contactable = true;
+        this.physicsModel = p['physicsModel'];
         this[_inertia] = undefined;
         this[_mass] = p['mass'] || 1;
     }
 
-    get contactable() {
-        return this[_contactable];
-    }
-
-    set contactable(c) {
-        this[_contactable] = c;
-    }
-
-    set physicsModel(model) {
-        this[_physicsModel] = model;
-    }
-
-    get physicsModel() {
-        return this[_physicsModel];
-    }
 
     get mass() {
         return this[_mass];

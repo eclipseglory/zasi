@@ -72,17 +72,17 @@ export default class World extends Graph {
             let region = world.uniformGrid.getRegion(id);
             for (let j = 0; j < region.relatedFigures.length; j++) {
                 let f = region.relatedFigures.get(j);
-                if (f == figure) {
+                if (f === figure) {
                     continue;
                 }
-                if (f.physicsModel == null || !f.contactable) continue;
-                if (isTested(f, figure, world.collisionTestedPairs)) {
+                if (f.physicsModel === undefined || !f.contactable) continue;
+                if (World.isTested(f, figure, world.collisionTestedPairs)) {
                     continue;
                 }
                 let pairs = world.collisionTestedPairs[figure.id];
-                if (pairs == undefined) pairs = world.collisionTestedPairs[f.id];
+                if (pairs === undefined) pairs = world.collisionTestedPairs[f.id];
                 let collisionRecord = undefined;
-                if (pairs == undefined) {
+                if (pairs === undefined) {
                     pairs = {};
                     world.collisionTestedPairs[figure.id] = pairs;
                     pairs[f.id] = {
@@ -94,7 +94,7 @@ export default class World extends Graph {
                     collisionRecord = pairs[f.id];
                 } else {
                     let r = pairs[f.id];
-                    if (r == undefined) {
+                    if (r === undefined) {
                         pairs[f.id] = {
                             warmNormalImpulse: 0,
                             warmTangentImpulse: 0,
@@ -110,8 +110,8 @@ export default class World extends Graph {
                 if (Tools.overlaps(figure.getSelectBounds(), f.getSelectBounds())) {
                     let modelA = physicsModel;
                     let modelB = f.physicsModel;
-                    modelA.applyCurrentTransform(figure.absoluteRotate, figure.getRelativeTransformMatrix(world));
-                    modelB.applyCurrentTransform(f.absoluteRotate, f.getRelativeTransformMatrix(world));
+                    modelA.applyCurrentTransform(figure.absoluteRotate, figure.relativeMatrix);
+                    modelB.applyCurrentTransform(f.absoluteRotate, f.relativeMatrix);
                     let result = SAT.collisionTest(modelA, modelB);
                     if (result.collision) {
                         let refreshId = collisionRecord.refreshCount;
@@ -129,26 +129,19 @@ export default class World extends Graph {
                         // console.log(warmNormalImpulse, warmTangentImpulse);
                         let elastic = Math.max(modelA.elastic, modelB.elastic);
                         let friction = Math.min(modelA.friction, modelB.friction);
-
-                        // RigidPhysics.solveCollision(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
-                        //     , result.contactPoints, result.contactPlane, result.MTV.direction, 0, friction, result.MTV.minOverlap.value);
                         let deltaVelocity = Constraint.solve(figure, f, result.centerA, result.centerB, result.verticesA, result.verticesB
                             , result.contactPoints, result.contactPlane, result.MTV.direction, elastic, friction, result.MTV.minOverlap.value,
                             0, 0.3, warmNormalImpulse, warmTangentImpulse);
-                        let dw1 = figure.angularVelocity - deltaVelocity.w1;
                         figure.angularVelocity = deltaVelocity.w1;
-                        if (Math.abs(figure.angularVelocity) <= Tools.EPSILON ) {
+                        if (Math.abs(figure.angularVelocity) <= Tools.EPSILON) {
                             figure.angularVelocity = 0;
                         }
 
-                        let dw2 = f.angularVelocity - deltaVelocity.w2;
                         f.angularVelocity = deltaVelocity.w2;
-                        if (Math.abs(f.angularVelocity) <= Tools.EPSILON ) {
+                        if (Math.abs(f.angularVelocity) <= Tools.EPSILON) {
                             f.angularVelocity = 0;
                         }
 
-                        let dx1 = figure.velocity.x - deltaVelocity.v1.x;
-                        let dy1 = figure.velocity.y - deltaVelocity.v1.y;
                         figure.velocity.x = deltaVelocity.v1.x;
                         if (Tools.equals(figure.velocity.x, 0)) {
                             figure.velocity.x = 0;
@@ -158,8 +151,6 @@ export default class World extends Graph {
                             figure.velocity.y = 0;
                         }
 
-                        let dx2 = f.velocity.x - deltaVelocity.v2.x;
-                        let dy2 = f.velocity.y - deltaVelocity.v2.y;
                         f.velocity.x = deltaVelocity.v2.x;
                         if (Tools.equals(f.velocity.x, 0)) {
                             f.velocity.x = 0;
@@ -169,13 +160,13 @@ export default class World extends Graph {
                             f.velocity.y = 0;
                         }
 
-                        // 为什么我这里直接利用即时速度会出问题？！
+                        // FIXME 为什么我这里直接利用即时速度会出问题？！
+                        // f.angularVelocity -= f.angularAcceleration;
                         // figure.velocity.x -= figure.acceleration.x;
                         // figure.velocity.y -= figure.acceleration.y;
                         // figure.angularVelocity -= figure.angularAcceleration;
                         // f.velocity.x -= f.acceleration.x;
                         // f.velocity.y -= f.acceleration.y;
-                        // f.angularVelocity -= f.angularAcceleration;
                         collisionRecord.refreshCount = world.refreshCount;
                         collisionRecord.warmNormalImpulse = deltaVelocity.warmNormalImpulse;
                         collisionRecord.warmTangentImpulse = deltaVelocity.warmTangentImpulse;
@@ -183,25 +174,24 @@ export default class World extends Graph {
                 }
             }
         }
+    }
 
-        function isTested(figure1, figure2, collisionPairs) {
-            let p1 = collisionPairs[figure1.id];
-            if (p1 != undefined) {
-                let result = p1[figure2.id];
-                if (result != undefined) {
-                    return result.tested;
-                }
+    static isTested(figure1, figure2, collisionPairs) {
+        let p1 = collisionPairs[figure1.id];
+        if (p1 != undefined) {
+            let result = p1[figure2.id];
+            if (result != undefined) {
+                return result.tested;
             }
-            let p2 = collisionPairs[figure2.id];
-            if (p2 != undefined) {
-                let result = p2[figure1.id];
-                if (result != undefined) {
-                    return result.tested;
-                }
-            }
-            return false;
         }
-
+        let p2 = collisionPairs[figure2.id];
+        if (p2 != undefined) {
+            let result = p2[figure1.id];
+            if (result != undefined) {
+                return result.tested;
+            }
+        }
+        return false;
     }
 
     removeModel(figure) {
@@ -338,7 +328,7 @@ export default class World extends Graph {
         //     }
         // }
         this.ctx.fillStyle = 'white';
-        this.ctx.fillRect(this.p1.x, this.p1.y, 5, 5);
+        this.ctx.fillRect(this.p1.x - 2.5, this.p1.y - 2.5, 5, 5);
         this.ctx.restore();
     }
 

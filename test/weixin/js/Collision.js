@@ -2,6 +2,7 @@ import BaseExample from "./BaseExample.js";
 import World from "../../../src/World.js";
 import TestRectSpirit from "../../../src/spirit/TestRectSpirit.js";
 import PhysicsModel from "../../../src/physics/PhysicsModel.js";
+import TestCircleSpirit from "../../../src/spirit/TestCircleSpirit.js";
 
 export default class Collision extends BaseExample {
     constructor(c) {
@@ -11,24 +12,60 @@ export default class Collision extends BaseExample {
     }
 
     ontouch(evt, x, y) {
-        let figure = new TestRectSpirit({
-            velocity: {x: 0, y: 0},
-            elastic: 0,
-            rotate: 180,
-            angularVelocity: 0.01,
-            force: {x: 0, y: 0.36},
-            x: x - 25,
-            y: y - 25,
-            width: 50,
-            height: 50,
-            mass:3.6
-        });
+        // x = 200;
+        // y = 200;
+        // let figure = new TestRectSpirit({
+        //     velocity: {x: 0, y: 0},
+        //     elastic: 0,
+        //     rotate: 180,
+        //     // angularVelocity: 0.01,
+        //     force: {x: 0, y: 0.36},
+        //     x: x - 25,
+        //     y: y - 25,
+        //     width: 50,
+        //     height: 50,
+        //     mass:3.6
+        // });
+
+
         let r = Math.floor(Math.random() * 255);
         let g = Math.floor(Math.random() * 255);
         let b = Math.floor(Math.random() * 255);
+
+        let random = Math.floor(Math.random() * 4);
+
+        // random = 3;
+        // y = this.world.height - 5 - 25;
+        let figure;
+        if (random === 3) {
+            figure = new TestCircleSpirit({
+                velocity: {x: 1, y: 0},
+                elastic: 0,
+                rotate: 180,
+                angularVelocity: 0.01,
+                force: {x: 0, y: 0.36},
+                x: x - 25,
+                y: y - 25,
+                width: 50,
+                height: 50,
+                mass: 3.6
+            });
+            figure.physicsModel = PhysicsModel.createEllipseModel(figure);
+        } else {
+            figure = new TestRectSpirit({
+                velocity: {x: 0, y: 0},
+                elastic: 0,
+                rotate: 180,
+                angularVelocity: 0.01,
+                force: {x: 0, y: 0.36},
+                x: x - 25,
+                y: y - 25,
+                width: 50,
+                height: 50,
+                mass: 3.6
+            });
+        }
         figure.color = "rgb(" + r + "," + g + "," + b + ")";
-        let random = Math.floor(Math.random() * 3);
-        // random = 2:
         if (random == 0) {
             figure.physicsModel = PhysicsModel.createDefaultModel(figure);
         } else if (random == 1) {
@@ -36,7 +73,7 @@ export default class Collision extends BaseExample {
         } else if (random == 2) {
             figure.physicsModel = PhysicsModel.createRegularTriangleModel(figure);
         }
-        figure.physicsModel.elastic = 0.2;
+        figure.physicsModel.elastic = 0.5;
         // figure.physicsModel.friction = Math.random();
         figure.startMove();
         this.world.addChild(figure);

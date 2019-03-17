@@ -55,6 +55,9 @@ export default class Graph extends Figure {
     }
 
     loopRefresh() {
+        // for (let i = 0; i < this.childrenSize; i++) {
+        //     this.getChild(i).debugCount = 0;
+        // }
         if (this.loopInterface) {
             if (this.loopInterface.loopStart) {
                 this.loopInterface.loopStart();
@@ -67,6 +70,11 @@ export default class Graph extends Figure {
                 this.loopInterface.loopEnd();
             }
         }
+        // for (let i = 0; i < this.childrenSize; i++) {
+        //     let f = this.getChild(i);
+        //     if (f.mass != undefined && f.mass != Infinity)
+        //         console.log(f.debugCount);
+        // }
     }
 
     pause() {

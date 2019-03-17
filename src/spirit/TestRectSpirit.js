@@ -7,7 +7,6 @@ export default class TestRectSpirit extends AbstractSpirit {
     }
 
     drawSelf(ctx) {
-        let m = this.getTransformMatrix();
         if (this.physicsModel) {
             ctx.beginPath();
             let vertices = this.physicsModel.originalVertices;
