@@ -99,6 +99,12 @@ export default class SAT {
 
             let contactPoints = [];
             // 四个点钟找到中间那个点
+            // 注意！如果发现返回的可能点中，p2是null，说明一个问题：多边形仅顶点和圆碰撞，那么碰撞点就是那个顶点：
+            if (points1.p2 == null) {
+                contactPoints.push(points1.p1);
+                collisionResult.contactPoints = contactPoints;
+                return collisionResult;
+            }
             let maxpoint = points1.p1;
             let minpoint = points1.p1;
             let tempTan = {x: -normal.y, y: normal.x};
@@ -127,14 +133,17 @@ export default class SAT {
                 if (point != null)
                     contactPoints.push(point);
             }
-            collisionResult.p1 = contactPoints[0].vertices[contactPoints[0].index];
+            if (contactPoints.length === 0) {
+                console.log('jhere');
+            }
+            // collisionResult.p1 = contactPoints[0].vertices[contactPoints[0].index];
             if (contactPoints[0].vertices == pmodel.vertices) {
                 contactPoints[0].figure = pmodel;
             } else {
                 contactPoints[0].figure = cmodel;
             }
             if (contactPoints.length == 2) {
-                collisionResult.p2 = contactPoints[1].vertices[contactPoints[1].index];
+                // collisionResult.p2 = contactPoints[1].vertices[contactPoints[1].index];
                 if (contactPoints[1].vertices == pmodel.vertices) {
                     contactPoints[1].figure = pmodel;
                 } else {

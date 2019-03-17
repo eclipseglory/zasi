@@ -34,7 +34,7 @@ export default class Collision extends BaseExample {
 
         let random = Math.floor(Math.random() * 4);
 
-        // random = 3;
+        // random = 2;
         // y = this.world.height - 5 - 25;
         let figure;
         if (random === 3) {
@@ -171,6 +171,24 @@ export default class Collision extends BaseExample {
         world.addChild(border3);
         world.addChild(border4);
         // world.addChild(border5);
+
+
+        // let testCircle = new TestCircleSpirit({
+        //     velocity: {x: 0, y: 0},
+        //     elastic: 0,
+        //     rotate: 180,
+        //     angularVelocity: 0.01,
+        //     // force: {x: 0, y: 0.36},
+        //     x: 200 - 25,
+        //     y: 400 - 25,
+        //     width: 50,
+        //     height: 50,
+        //     mass: 3.6,
+        //     color: 'red'
+        // });
+        // testCircle.physicsModel = PhysicsModel.createEllipseModel(testCircle);
+        // testCircle.startMove();
+        // world.addChild(testCircle);
         world.startWorld();
     }
 }
