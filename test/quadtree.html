@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="test.js"></script>
+    <title>四叉树测试</title>
+</head>
+<body>
+
+</body>
+<script type='module'>
+    import QuadNode from "../src/utils/QuadNode.js";
+    import Graph from "../src/Graph.js";
+    import Rectangle from "../src/shape/Rectangle.js";
+    import TestRectSpirit from "../src/spirit/TestRectSpirit.js";
+    import Tools from "../../src/utils/Tools.js";
+
+    createOneFullCanvas('no-gravity rigid body collision');
+    let w = 20;
+    let h = 35;
+    let drawQudaGrid = false;
+    let quadtree = new QuadNode(0, 0, webgl.width, webgl.height);
+    let graph = new Graph(webgl, {backgroundColor: '#000000'});
+    let figures = [];
+    for (let i = 0; i < 100; i++) {
+        let x = Math.floor(Math.random() * (webgl.width - w)) - 10 - w / 2;
+        let y = Math.floor(Math.random() * (webgl.height - h)) - 10 - h / 2;
+        let figure = new TestRectSpirit({
+            x: x,
+            y: y,
+            width: w,
+            height: h,
+            color: 'yellow'
+        });
+        figure.velocity.x = Math.floor(Math.random() * 5);
+        figure.velocity.y = Math.floor(Math.random() * 5);
+        figure.addEventListener(TestRectSpirit.EVENT_AFTER_CALCULATE_POSE, function (evt) {
+            let figure = evt.source;
+            if (figure.x < 0) {
+                figure.x = 0;
+                figure.velocity.x *= -1;
+            }
+            if (figure.x + figure.width > graph.width) {
+                figure.x = graph.width - figure.width;
+                figure.velocity.x *= -1;
+            }
+            if (figure.y < 0) {
+                figure.y = 0;
+                figure.velocity.y *= -1;
+            }
+            if (figure.y + figure.height > graph.height) {
+                figure.y = graph.height - figure.height;
+                figure.velocity.y *= -1;
+            }
+            QuadNode.updateFigure(quadtree, figure);
+            // if(figure.relatedRegion.length > 4){
+            //     console.error(figure.relatedRegion.length);
+            // }
+
+        });
+        figures.push(figure);
+        figure.startMove();
+        graph.addChild(figure);
+        quadtree.insertFigure(figure);
+        // QuadNode.updateFigure(quadtree, figure);
+    }
+    webgl.onmousedown = function (evt) {
+        for (let i = 0; i < figures.length; i++) {
+            let f = figures[i];
+            let x = evt.clientX - 10;
+            let y = evt.clientY - 10;
+            if (x > f.x && x < f.x + f.width && y > f.y && y < f.y + f.height) {
+                Tools.removeObjFromArray(f, figures);
+                graph.removeChild(f);
+                f.x = -100;
+                f.y = -100;
+                QuadNode.updateFigure(quadtree, f);
+                break;
+            }
+        }
+    };
+
+    graph.realTimeDraw = true;
+
+    graph.drawSelf = function (ctx) {
+        if(!drawQudaGrid) return;
+        ctx.save();
+        ctx.strokeStyle = 'red';
+        drawQuad(ctx, quadtree);
+        ctx.restore();
+    };
+    graph.startLoopRefresh();
+
+    function drawQuad(ctx, quad) {
+        ctx.beginPath();
+        ctx.rect(quad.x, quad.y, quad.width, quad.height);
+        ctx.stroke();
+        if(quad._divide){
+            if (quad.ne != null) {
+                drawQuad(ctx, quad.ne);
+            }
+            if (quad.nw != null) {
+                drawQuad(ctx, quad.nw);
+            }
+            if (quad.se != null) {
+                drawQuad(ctx, quad.se);
+            }
+            if (quad.sw != null) {
+                drawQuad(ctx, quad.sw);
+            }
+        }
+    }
+</script>
+</html>
